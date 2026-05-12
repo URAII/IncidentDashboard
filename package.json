@@ -1,0 +1,14 @@
+{
+  "name": "incident-dashboard-prototype",
+  "version": "0.1.0",
+  "description": "Sanitized-only Incident Dashboard prototype for MOPH cyber/web compromise monitoring",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "lint": "node --check src/*.js tests/*.js ui/app.js ui/app-core.mjs scripts/*.js",
+    "check:readiness": "node scripts/check-readiness.js",
+    "check": "npm run lint && npm run check:readiness && npm test",
+    "test": "node --test",
+    "ui": "node src/ui-server.js"
+  }
+}

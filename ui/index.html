@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOPH Incident Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Sanitized-only Cyber Monitoring</p>
+        <h1>Incident Dashboard for Ministry of Public Health Operations</h1>
+        <p class="hero__lede">
+          Executive, SOC, and agency follow-up views driven only by sanitized dashboard payloads.
+        </p>
+      </div>
+      <div class="hero__meta">
+        <div class="meta-card">
+          <span class="meta-card__label">Payload Generated</span>
+          <strong id="generatedAt">Loading...</strong>
+        </div>
+        <div class="meta-card">
+          <span class="meta-card__label">Rejected During Validation</span>
+          <strong id="rejectedRecords">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="filters-panel">
+        <div class="panel-heading">
+          <h2>Filters</h2>
+          <button id="resetFilters" class="ghost-button" type="button">Reset</button>
+        </div>
+        <form id="filtersForm" class="filters-form">
+          <label>
+            Organization
+            <select name="organization_id" id="organizationFilter"></select>
+          </label>
+          <label>
+            Health Region
+            <select name="health_region" id="regionFilter"></select>
+          </label>
+          <label>
+            Province
+            <select name="province" id="provinceFilter"></select>
+          </label>
+          <label>
+            Agency Type
+            <select name="agency_type" id="agencyTypeFilter"></select>
+          </label>
+          <label>
+            Incident Type
+            <select name="incident_type" id="incidentTypeFilter"></select>
+          </label>
+          <label>
+            Severity
+            <select name="severity" id="severityFilter"></select>
+          </label>
+          <label>
+            Status
+            <select name="status" id="statusFilter"></select>
+          </label>
+          <label>
+            Workflow Stage
+            <select name="workflow_stage" id="workflowFilter"></select>
+          </label>
+          <label>
+            SLA Status
+            <select name="sla_status" id="slaFilter"></select>
+          </label>
+          <label>
+            Image Presence
+            <select name="has_image" id="imageFilter">
+              <option value="">All</option>
+              <option value="true">Has image</option>
+              <option value="false">No image</option>
+            </select>
+          </label>
+          <label>
+            Date From
+            <input type="date" name="date_from" id="dateFromFilter">
+          </label>
+          <label>
+            Date To
+            <input type="date" name="date_to" id="dateToFilter">
+          </label>
+          <button class="primary-button" type="submit">Apply Filters</button>
+        </form>
+      </aside>
+
+      <section class="dashboard-stage">
+        <div class="view-switcher" id="viewTabs" role="tablist" aria-label="Dashboard views">
+          <button class="view-tab is-active" type="button" data-view="executive">Executive</button>
+          <button class="view-tab" type="button" data-view="soc">SOC Operations</button>
+          <button class="view-tab" type="button" data-view="agency">Agency Follow-up</button>
+        </div>
+
+        <section class="metric-grid" id="metricGrid" aria-label="Summary metrics"></section>
+
+        <div class="content-grid">
+          <section class="glass-panel">
+            <div class="panel-heading">
+              <h2>Distribution Overview</h2>
+              <span id="activeViewLabel" class="chip">Executive</span>
+            </div>
+            <div id="overviewGrid" class="overview-grid"></div>
+          </section>
+
+          <section class="glass-panel">
+            <div class="panel-heading">
+              <h2>View Highlights</h2>
+            </div>
+            <div id="viewHighlights" class="stack-list"></div>
+          </section>
+        </div>
+
+        <div class="content-grid content-grid--records">
+          <section class="glass-panel">
+            <div class="panel-heading">
+              <h2>Sanitized Incident Records</h2>
+              <span id="recordCount" class="chip">0 records</span>
+            </div>
+            <div id="recordList" class="record-list"></div>
+          </section>
+
+          <section class="glass-panel">
+            <div class="panel-heading">
+              <h2>Incident Detail</h2>
+            </div>
+            <div id="recordDetail" class="record-detail"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
