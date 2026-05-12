@@ -202,3 +202,5 @@ tests/
 - Use sanitized sample domains and organization IDs only
 - Use dummy secret markers such as `password=TEST_PASSWORD_SHOULD_BE_REDACTED`
 - Never use real credentials, tokens, cookies, or PII
+
+- PR verification marker: 2026-05-12 branch protection test (no logic change)
