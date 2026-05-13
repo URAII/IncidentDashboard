@@ -5,7 +5,7 @@
   "reviewer": "security.reviewer.moph",
   "sanitized_sample_workbook": "template.v2.real-sanitized.xlsx",
   "rollback_plan": "Revert to previous template fixture and rerun npm run check:template-drift plus npm run check.",
-  "owner_approved": false,
+  "owner_approved": true,
   "reviewer_approved": true,
   "approved_at": "2026-05-13T00:00:00.000Z"
 }

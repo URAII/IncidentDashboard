@@ -43,15 +43,17 @@ test("docs mention required checks and branch rule guidance for template changes
 
 test("CODEOWNERS covers template workbook governance paths", () => {
   const codeowners = read(".github/CODEOWNERS");
+  const workbookOwnerMatch = codeowners.match(
+    /\/fixtures\/xlsx-multifile\/template\.v2\.\*\.xlsx\s+@([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?)/
+  );
+  const releaseOwnerMatch = codeowners.match(
+    /\/fixtures\/xlsx-multifile\/template-release\.v2\.json\s+@([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?)/
+  );
 
-  assert.match(
-    codeowners,
-    /\/fixtures\/xlsx-multifile\/template\.v2\.\*\.xlsx\s+@your-org\/template-owners/
-  );
-  assert.match(
-    codeowners,
-    /\/fixtures\/xlsx-multifile\/template-release\.v2\.json\s+@your-org\/template-owners/
-  );
+  assert.ok(workbookOwnerMatch, "missing CODEOWNER for template workbook path");
+  assert.ok(releaseOwnerMatch, "missing CODEOWNER for template release artifact path");
+  assert.notEqual(workbookOwnerMatch[1], "your-org/template-owners");
+  assert.notEqual(releaseOwnerMatch[1], "your-org/template-owners");
 });
 
 test("PR template and template governance logs do not leak sensitive data", () => {

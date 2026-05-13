@@ -152,8 +152,8 @@ Strict schema จะตรวจ:
 - covered paths:
   - `fixtures/xlsx-multifile/template.v2.*.xlsx`
   - `fixtures/xlsx-multifile/template-release.v2.json`
-- placeholder owner allowed until real team mapping is ready:
-  - `@your-org/template-owners`
+- configured owner mapping:
+  - `@URAII`
 
 ### Migration + Deprecation policy (M11)
 

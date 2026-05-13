@@ -79,7 +79,7 @@
 - required template coverage:
   - `/fixtures/xlsx-multifile/template.v2.*.xlsx`
   - `/fixtures/xlsx-multifile/template-release.v2.json`
-- placeholder owner/team is allowed until final org mapping is ready
+- current owner mapping: `@URAII`
 
 ## Multi-file APIs
 

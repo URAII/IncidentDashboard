@@ -369,7 +369,7 @@ Conclusion:
 - `.github/CODEOWNERS` must cover:
   - `fixtures/xlsx-multifile/template.v2.*.xlsx`
   - `fixtures/xlsx-multifile/template-release.v2.json`
-- placeholder owner is allowed (for example `@your-org/template-owners`)
+- current owner mapping uses real GitHub account: `@URAII`
 - docs must mention `Code Owners review` as required for template path changes
 
 ## Test Files
