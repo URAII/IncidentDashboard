@@ -1,0 +1,3 @@
+# Template governance owners
+/fixtures/xlsx-multifile/template.v2.*.xlsx @URAII
+/fixtures/xlsx-multifile/template-release.v2.json @URAII
