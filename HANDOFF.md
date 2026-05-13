@@ -29,7 +29,7 @@ Project: Incident Dashboard for MOPH Cyber / Web Compromise Monitoring
 
 ### Not Started
 
-- Spreadsheet/AppSheet ingestion adapters
+- Direct AppSheet/Google connector integration (production connector still disabled by policy)
 
 ## Important Technical Decisions
 
@@ -81,7 +81,7 @@ If a future change breaks behavior:
 
 ## Next Recommended Task
 
-Add spreadsheet/AppSheet-safe ingestion or persistence behind the existing sanitized validation flow, while keeping `buildDashboardPayload` as the single dashboard data source.
+Add strict schema enforcement and connector-safe ingestion flow on top of the current multi-file CSV adapter, while keeping `buildDashboardPayload` as the single dashboard data source.
 
 ## Mac Readiness Check (2026-05-12)
 
@@ -421,3 +421,312 @@ Add branch protection to require the `Readiness Check` CI job before merge.
 ### Next Recommended Task
 
 Prepare a real git repository + valid GitHub authentication, then run branch protection apply and PR block/unblock verification flow using required check `Readiness Check`.
+
+## Current Branch Protection Verification Status (2026-05-12)
+
+### Scope Executed
+
+- Verified GitHub auth and real remote repository state
+- Pushed Incident Dashboard codebase + CI workflow to `origin/main`
+- Verified GitHub Actions check name `Readiness Check` exists and runs
+- Attempted to enforce branch protection on `main`
+- Created one verification PR and tested merge behavior
+
+### Commands Run (Sanitized)
+
+```bash
+gh auth status
+git remote -v
+git ls-remote --heads origin
+npm run check
+git add <project-files> && git commit -m "chore: import incident dashboard codebase and readiness workflow"
+git push origin main
+gh run list --workflow ci.yml --limit 5 --json databaseId,displayTitle,event,headBranch,status,conclusion,url
+gh run view <run-id> --json jobs,url,displayTitle,conclusion,status
+gh api repos/<owner>/<repo>/branches/main/protection
+gh api -X PUT repos/<owner>/<repo>/branches/main/protection ...
+gh api repos/<owner>/<repo>/rulesets
+git checkout -b test/pr-protection-verification
+git add TESTING.md && git commit -m "docs: add branch protection verification marker"
+git push -u origin test/pr-protection-verification
+gh pr create --base main --head test/pr-protection-verification --title "docs: branch protection verification PR" --body "<sanitized>"
+gh pr view 1 --json number,state,mergeStateStatus,mergeable,statusCheckRollup,url
+gh pr checks 1
+gh pr merge 1 --squash --delete-branch
+```
+
+### Verified Results
+
+- `gh auth status`: pass (logged in)
+- Remote repository is reachable and has branch `main`
+- `npm run check`: pass
+- GitHub Actions workflow `CI` ran successfully on push/PR
+- Required check/job name confirmed on GitHub: `Readiness Check`
+
+### Protection Enforcement Result
+
+- Reading and updating branch protection returned `HTTP 403`
+- Reading repository rulesets returned `HTTP 403`
+- GitHub message indicates branch protection/ruleset feature is unavailable for current repository plan unless repository is public or plan is upgraded
+
+### PR Verification Result
+
+- Test PR was created and merged successfully
+- Merge was **not blocked** while check enforcement was not active
+- This confirms `Readiness Check` exists, but branch protection requirement is still not enforced at repository settings level
+
+### Remaining Limits
+
+- Cannot complete end-to-end block/unblock verification until repository plan/settings allow branch protection or rulesets
+
+### Next Recommended Task
+
+1. Upgrade repository plan support or make repository public (per policy)
+2. Enforce branch protection on `main` with required status check `Readiness Check`
+3. Run one new PR verification cycle:
+   - expected blocked while required check is pending/failing
+   - expected unblocked after `Readiness Check` passes
+
+## Spreadsheet Adapter Update (2026-05-13)
+
+### What Changed
+
+- Added local CSV ingestion adapter: `src/spreadsheet-adapter.js`
+- Added adapter exports in `src/index.js`
+- Added local CSV fixture: `fixtures/sample-incident-import.csv`
+- Added adapter regression tests: `tests/test_spreadsheet_adapter.test.js`
+- Updated docs and roadmap for spreadsheet ingestion progress
+
+### Behavior Summary
+
+- CSV rows are mapped to `{ incident, attachments, evidence }` bundles
+- All mapped bundles are validated using existing `prepareIncidentDataset` flow
+- URL/path fields are sanitized by existing sanitization logic before dashboard/report usage
+- Secret-like content in sanitized narrative fields is rejected
+- Unsanitized evidence from CSV (`evidence_is_sanitized=false`) is excluded from dashboard preview
+
+### Commands Run
+
+```bash
+npm test
+npm run check
+```
+
+### Verification Result
+
+- `npm test`: pass (`39/39`)
+- `npm run check`: pass (lint + readiness + tests)
+
+### Next Recommended Task
+
+Add multi-file spreadsheet ingestion mode (separate incident/attachment/evidence sheets) with key-based join and regression tests for join integrity.
+
+## M8 Multi-file CSV Import + CLI Update (2026-05-13)
+
+### Scope
+
+ต่อยอดจาก single-row CSV adapter เดิมเป็น multi-file join mode พร้อม CLI import
+
+### Changed Files
+
+- `src/spreadsheet-adapter.js`
+- `src/import-csv.js`
+- `src/index.js`
+- `fixtures/csv-multifile/incidents.valid.csv`
+- `fixtures/csv-multifile/incident_attachments.valid.csv`
+- `fixtures/csv-multifile/incident_evidence.valid.csv`
+- `fixtures/csv-multifile/incidents.duplicate.csv`
+- `fixtures/csv-multifile/incidents.missing-id.csv`
+- `fixtures/csv-multifile/incident_attachments.orphan.csv`
+- `fixtures/csv-multifile/incident_evidence.missing-id.csv`
+- `tests/test_spreadsheet_multifile.test.js`
+- `tests/test_import_csv_cli.test.js`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+
+### Behavior Added
+
+- import `incidents.csv`, `incident_attachments.csv`, `incident_evidence.csv`
+- join ด้วย `incident_id`
+- รองรับกรณี child files หายได้ (`attachments`/`evidence` optional)
+- ตรวจจับ/รายงาน:
+  - duplicate incident id
+  - missing incident id
+  - orphan child
+- บังคับผ่าน validation/sanitization เดิม (ไม่ bypass)
+- CLI export ใช้ `sanitizedBundles` (child ที่ยังไม่ sanitized จะไม่ถูกส่งออก)
+
+### Tests
+
+คำสั่งที่รัน:
+
+```bash
+npm test
+npm run check
+node src/import-csv.js --incidents fixtures/csv-multifile/incidents.valid.csv --attachments fixtures/csv-multifile/incident_attachments.valid.csv --evidence fixtures/csv-multifile/incident_evidence.valid.csv --out /private/tmp/incident-import-output.json --now 2026-05-12T12:00:00.000Z
+```
+
+ผลลัพธ์:
+
+- `npm test`: pass (`45/45`)
+- `npm run check`: pass
+- CLI: pass, output file generated successfully
+
+### Risks
+
+- CSV schema ยังเป็น flexible mode; หาก header สะกดผิดแต่ไม่ชน required fields บางกรณีจะไป fail ตอน validation แทน fail-fast ตอน parse
+- ยังไม่รองรับไฟล์ `.xlsx` ตรง ต้องแปลงเป็น CSV ก่อน
+
+### Next Step
+
+1. เพิ่ม strict schema profile สำหรับ multi-file CSV (กำหนด required columns ต่อไฟล์)
+2. เพิ่ม CLI option `--fail-on-join-error` และ `--fail-on-validation-error` สำหรับ pipeline
+3. พิจารณา adapter ชั้นต่อไปสำหรับ AppSheet-safe sync โดยยังคง sanitized-only contract
+
+## M9 Strict CSV Schema + CI-safe Flags Update (2026-05-13)
+
+### Scope
+
+ต่อจาก M8 multi-file CSV import + CLI โดยเพิ่ม readiness/check gate สำหรับ schema และ exit behavior แบบ pipeline-safe
+
+### Changed Files
+
+- `src/spreadsheet-adapter.js`
+- `src/import-csv.js`
+- `tests/test_spreadsheet_multifile.test.js`
+- `tests/test_import_csv_cli.test.js`
+- `fixtures/csv-multifile/incidents.unknown-header.csv`
+- `fixtures/csv-multifile/incidents.missing-required-header.csv`
+- `fixtures/csv-multifile/incidents.missing-required-field.csv`
+- `fixtures/csv-multifile/incidents.validation-error.csv`
+- `fixtures/csv-multifile/incident_attachments.missing-required-field.csv`
+- `fixtures/csv-multifile/incident_evidence.unknown-header.csv`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `HANDOFF.md`
+
+### Behavior Added
+
+- strict schema validation ต่อไฟล์ (`incidents`, `attachments`, `evidence`):
+  - `missing_required_header`
+  - `unknown_header`
+  - `missing_required_field`
+- เพิ่ม `schema_errors` ในผลลัพธ์ import
+- เพิ่ม CLI flags:
+  - `--strict-schema`
+  - `--fail-on-join-error`
+  - `--fail-on-validation-error`
+- strict mode จะ fail (exit non-zero) เมื่อมี `schema_errors`
+- fail flags จะ fail ตาม policy ที่ตั้ง
+- flexible mode เดิมยังใช้งานได้เมื่อไม่เปิด fail flags
+
+### Commands Run (Sanitized)
+
+```bash
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm test`: pass (`51/51`)
+- `npm run check`: pass (lint + readiness + tests)
+- strict mode fail/exit code: pass (via CLI test)
+- flexible mode backward compatibility: pass (via CLI test)
+
+### Sanitization Notes
+
+- schema/join/validation errors รายงานเฉพาะ `entity/header/field/row_number`
+- ไม่ dump raw row payload หรือค่า token/secret/PII
+- output bundle ยังคงใช้ `sanitizedBundles` เท่านั้น
+
+### Risks / Remaining Limits
+
+1. Strict schema เป็น profile ปัจจุบันแบบ fixed ในโค้ด ยังไม่รองรับ schema versioning
+2. `.xlsx` direct ingestion ยังไม่มี ต้องแปลงเป็น CSV ก่อน
+3. Local sandbox ที่บล็อก localhost bind อาจทำให้ UI server tests fail; ต้องรันใน environment ที่ bind ได้
+
+### Next Recommended Task
+
+1. เพิ่ม schema profile version (`v1`/`v2`) เพื่อรองรับการเปลี่ยนคอลัมน์ในอนาคต
+2. เพิ่ม adapter ชั้น `.xlsx -> strict CSV contract` เพื่อให้ผู้ใช้ไม่ต้องแปลงไฟล์เอง
+3. เพิ่ม CI matrix อย่างน้อย 2 Node versions เพื่อยืนยัน readiness gate ข้าม runtime
+
+## M10 CSV Schema Versioning Update (2026-05-13)
+
+### Scope
+
+เพิ่ม schema profile version (`v1`, `v2`) สำหรับ multi-file CSV import โดยคง default backward compatibility เดิม และเพิ่ม CLI `--schema-version`
+
+### Changed Files
+
+- `src/spreadsheet-adapter.js`
+- `src/import-csv.js`
+- `src/index.js`
+- `tests/test_spreadsheet_multifile.test.js`
+- `tests/test_import_csv_cli.test.js`
+- `tests/test_ui_server.test.js`
+- `fixtures/csv-multifile/incidents.v2.valid.csv`
+- `fixtures/csv-multifile/incident_attachments.v2.valid.csv`
+- `fixtures/csv-multifile/incident_evidence.v2.valid.csv`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `HANDOFF.md`
+
+### Behavior Added
+
+- schema version profiles:
+  - `v1` (default, backward compatible)
+  - `v2` (header profile ใหม่ + internal header mapping กลับ canonical fields)
+- CLI flag:
+  - `--schema-version v1|v2`
+- strict schema validation ผูกกับ version ที่เลือก
+- `schema_errors` และ output report ระบุ `schema_version`
+- invalid schema version จะ fail ทันที (`unsupported schema version`)
+- ยังบังคับ flow เดิม: join -> validation -> sanitization โดยไม่ bypass
+
+### UI Test Guard
+
+- เพิ่ม guard ใน `tests/test_ui_server.test.js`:
+  - ถ้า bind `127.0.0.1` ไม่ได้ใน sandbox (`EPERM`/`EACCES`) ให้ skip เฉพาะ UI bind tests
+  - ไม่ลด coverage core logic ส่วน validation/sanitization/import/report
+
+### Commands Run (Sanitized)
+
+```bash
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm test`: pass (`56 pass`, `0 fail`, `2 skipped`)
+- `npm run check`: pass (lint + readiness + tests)
+- CLI `--schema-version v1|v2`: pass
+- invalid `--schema-version`: fail ตามคาด
+- wrong headers per version: fail ตามคาดใน strict mode
+- default version (`v1`) ยังใช้งานกับ fixtures เดิมได้
+
+### Sanitization Notes
+
+- error/report แสดงเฉพาะข้อมูลโครงสร้าง (`type`, `schema_version`, `entity`, `header`, `field`, `row_number`)
+- ไม่ dump raw sensitive URL query/token/secret/PII
+- log output path ใน CLI แสดงเฉพาะ `basename` ไม่พิมพ์ absolute path
+
+### Risks / Remaining Limits
+
+1. ยังไม่มี policy deprecation สำหรับ schema version เก่า
+2. ยังไม่มี auto-migration helper ระหว่าง `v1` -> `v2`
+3. direct `.xlsx` ingestion ยังไม่รองรับ (ต้องแปลงเป็น CSV ก่อน)
+
+### Next Recommended Task
+
+1. เพิ่มเอกสาร migration guide `v1 -> v2` พร้อมตัวอย่าง mapping
+2. เพิ่ม deprecation policy + compatibility window ของ schema versions
+3. เพิ่ม `.xlsx` adapter ที่ map เข้าสู่ versioned CSV contract เดียวกัน

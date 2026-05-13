@@ -1,0 +1,2 @@
+evidence_id,incident_id,evidence_type,evidence_text_sanitized,evidence_url_sanitized,source_type,confidence_score,is_sanitized,created_by,created_at,raw_cookie
+EVD-M9-001,INC-M8-001,url,,https://chiangmaihealth.example/index.html,sensor,0.96,true,m9.importer,2026-05-12T06:06:30.000Z,SANITIZED_PLACEHOLDER

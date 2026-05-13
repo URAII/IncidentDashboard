@@ -65,3 +65,8 @@ Unsanitized child records stay out of payload previews and report output.
 - `summary.total_findings` reflects sanitized evidence items only
 - `summary.image_evidence_items` reflects sanitized image-type child evidence or attachments
 - `filter_options.workflow_stages` is included for lightweight UI filter rendering
+
+## Spreadsheet Ingestion Note
+
+- CSV ingestion from `src/spreadsheet-adapter.js` must pass through `prepareIncidentDataset` before dashboard payload generation
+- Rejected CSV rows must not appear in `records`, `views`, or summary aggregates

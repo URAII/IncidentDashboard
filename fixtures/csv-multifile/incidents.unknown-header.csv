@@ -1,0 +1,2 @@
+incident_id,incident_code,reported_at,detected_at,organization_id,incident_type,severity,workflow_stage,summary_sanitized,detection_source,raw_access_token
+INC-M9-001,MOPH-M9-0001,2026-05-12T06:00:00.000Z,2026-05-12T06:10:00.000Z,ORG-001,Web Defacement,Critical,Investigating,Unknown header test row,SOC Monitoring,SANITIZED_PLACEHOLDER

@@ -46,3 +46,4 @@ https://example.moph.go.th/path
 
 - Incident fields must already be sanitized to pass validation
 - Unsanitized attachments/evidence can exist in storage flow but are excluded from dashboard/report payloads
+- Spreadsheet CSV ingestion must pass through `prepareIncidentDataset` and may not bypass validation/sanitization

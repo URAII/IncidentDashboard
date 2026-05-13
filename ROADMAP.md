@@ -24,11 +24,15 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 8: Lightweight dashboard UI
 - Milestone 9: Executive, SOC, and agency report generation
 - Milestone 10: Unit and regression tests plus updated docs/handoff
+- Milestone 11: Local spreadsheet CSV ingestion adapter that maps rows to sanitized incident bundles
+- Milestone 12 (M8): Multi-file CSV ingestion (`incidents`, `incident_attachments`, `incident_evidence`) + CLI import flow
+- Milestone 13 (M9): Strict CSV schema validation per file + CI-safe CLI fail flags (`--strict-schema`, `--fail-on-join-error`, `--fail-on-validation-error`)
+- Milestone 14 (M10): CSV schema profile versioning (`v1`, `v2`) + CLI `--schema-version` + version-aware strict validation
 
 ### Deferred
 
 - CI pipeline and packaging for deployment
-- Spreadsheet/AppSheet connector integration
+- Direct AppSheet/Google connector integration (production connector still disabled by policy)
 
 ## Delivered Assets
 
@@ -39,8 +43,12 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - `src/sla.js`
 - `src/dashboard.js`
 - `src/report.js`
+- `src/spreadsheet-adapter.js`
+- `src/import-csv.js`
 - `src/ui-server.js`
 - `fixtures/sample-incident-bundles.json`
+- `fixtures/sample-incident-import.csv`
+- `fixtures/csv-multifile/*`
 - `ui/index.html`
 - `ui/app.js`
 - `ui/app-core.mjs`
@@ -56,9 +64,9 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 
 ## Recommended Next Path
 
-1. Add import/export adapters for spreadsheet-based workflows using local sanitized fixtures
-2. Add CI execution for `node --test` and UI smoke checks
-3. Decide whether the next step is a persistent data store or spreadsheet connector
+1. Add typed `.xlsx` ingestion wrapper that maps to the same versioned schema contract (`v1`/`v2`)
+2. Define deprecation policy/timeline for old schema versions and migration guide
+3. Decide whether the next step is a persistent data store or AppSheet-safe connector wrapper
 
 ## Non-goals for this prototype
 

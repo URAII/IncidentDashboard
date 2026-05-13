@@ -1,0 +1,2 @@
+attachment_id,incident_id,attachment_type,file_name,file_url,file_mime_type,file_size,is_sanitized,created_by,created_at
+ATT-M8-ORPHAN,INC-M8-UNKNOWN,image,orphan.png,https://cdn.example.moph.go.th/evidence/orphan.png?token=abc123,image/png,512,true,m8.importer,2026-05-12T08:05:00.000Z

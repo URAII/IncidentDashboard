@@ -1,0 +1,3 @@
+attachment_id,incident_id,attachment_type,file_name,file_url,file_mime_type,file_size,image_caption,is_sanitized,sanitized_by,sanitized_at,created_by,created_at
+ATT-M8-001,INC-M8-001,image,defacement.png,https://cdn.example.moph.go.th/evidence/defacement.png?token=abc123,image/png,204800,Sanitized capture,true,m8.reviewer,2026-05-12T06:07:00.000Z,m8.importer,2026-05-12T06:06:00.000Z
+ATT-M8-002,INC-M8-002,document,agency-note.pdf,https://cdn.example.moph.go.th/evidence/agency-note.pdf?token=abc123,application/pdf,1024,Agency note,true,m8.reviewer,2026-05-12T09:06:00.000Z,m8.importer,2026-05-12T09:05:00.000Z

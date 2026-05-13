@@ -22,6 +22,20 @@ const {
   sanitizeText,
   containsBlockedSecret
 } = require("./sanitization");
+const {
+  parseCsvText,
+  parseCsvFile,
+  mapIncidentRowToBundle,
+  buildBundlesFromRows,
+  ingestCsvRows,
+  ingestCsvText,
+  ingestCsvFile,
+  ingestCsvRowSets,
+  joinRowsByIncidentId,
+  ingestCsvFiles,
+  CSV_SCHEMA_PROFILES,
+  DEFAULT_SCHEMA_VERSION
+} = require("./spreadsheet-adapter");
 
 module.exports = {
   MASTER_DATA,
@@ -42,5 +56,17 @@ module.exports = {
   sanitizePath,
   sanitizeDomain,
   sanitizeText,
-  containsBlockedSecret
+  containsBlockedSecret,
+  parseCsvText,
+  parseCsvFile,
+  mapIncidentRowToBundle,
+  buildBundlesFromRows,
+  ingestCsvRows,
+  ingestCsvText,
+  ingestCsvFile,
+  ingestCsvRowSets,
+  joinRowsByIncidentId,
+  ingestCsvFiles,
+  CSV_SCHEMA_PROFILES,
+  DEFAULT_SCHEMA_VERSION
 };

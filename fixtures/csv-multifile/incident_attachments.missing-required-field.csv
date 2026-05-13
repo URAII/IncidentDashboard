@@ -1,0 +1,2 @@
+attachment_id,incident_id,attachment_type,file_name,file_url,file_mime_type,file_size,image_caption,is_sanitized,sanitized_by,sanitized_at,created_by,created_at
+ATT-M9-001,INC-M8-001,image,missing-url,,image/png,204800,Missing URL field,true,m9.reviewer,2026-05-12T06:07:00.000Z,m9.importer,2026-05-12T06:06:00.000Z

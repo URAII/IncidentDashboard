@@ -1,0 +1,3 @@
+evidence_id,incident_id,evidence_type,evidence_text_note_sanitized,evidence_url_link_sanitized,source_type,confidence_score,is_sanitized,created_by,created_at
+EVD-M10-001,INC-M10-001,url,,https://chiangmaihealth.example/index.html?token=abc123,sensor,0.96,true,m10.importer,2026-05-12T06:06:30.000Z
+EVD-M10-002,INC-M10-002,text,Suspicious lure screenshot submitted by agency,,agency,0.42,false,m10.importer,2026-05-12T09:05:30.000Z

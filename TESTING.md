@@ -32,7 +32,7 @@ npm run check
 - `npm run check:readiness`: ตรวจว่า fixture โหลดได้, dataset validation ผ่าน, dashboard payload สร้างได้, ไม่มี query string/fragment หลุดใน sanitized output fields, และ unsanitized evidence ไม่หลุดเข้า preview
 - `npm test`: รัน unit/regression tests ทั้งชุด
 
-### Latest Mac Verification (2026-05-12)
+### Latest Mac Verification (2026-05-13)
 
 ยืนยันรอบล่าสุดบน Mac:
 
@@ -44,7 +44,7 @@ npm test
 ผลที่ต้องผ่าน:
 
 - `npm run check` ผ่านครบทุก stage
-- `npm test` ผ่าน `36/36`
+- `npm test` ผ่าน (`56 pass`, `0 fail`) และ `2 skipped` เฉพาะกรณี sandbox bind `127.0.0.1` ไม่ได้
 
 ## CI Verification
 
@@ -167,6 +167,47 @@ Conclusion:
 - local UI server API filtering
 - static HTML shell serving
 
+### 9. Spreadsheet CSV Adapter
+
+- local CSV parsing with quoted field handling
+- row mapping to incident/attachment/evidence bundle structure
+- validation + sanitization enforcement through existing dataset flow
+- secret-like content rejection for sanitized narrative fields
+- unsanitized evidence exclusion from dashboard preview after CSV ingestion
+
+### 10. Multi-file CSV Join + CLI
+
+- join incidents/attachments/evidence by `incident_id`
+- duplicate `incident_id` detection in incidents file
+- missing `incident_id` detection in incident and child rows
+- orphan child detection for non-existing incident references
+- optional child file handling when attachment/evidence files are omitted
+- CLI export verification for sanitized-only bundle output
+
+### 11. Strict CSV Schema + CI-safe Fail Flags (M9)
+
+- strict schema per file (`incidents`, `attachments`, `evidence`)
+- required header checks
+- unknown header checks
+- missing required field checks
+- CLI policy flags:
+  - `--strict-schema`
+  - `--fail-on-join-error`
+  - `--fail-on-validation-error`
+- strict mode non-zero exit verification
+- flexible mode backward-compatibility verification (no fail flags)
+
+### 12. CSV Schema Versioning (M10)
+
+- default schema version = `v1` (backward compatible)
+- explicit `schemaVersion: "v1"` และ CLI `--schema-version v1`
+- explicit `schemaVersion: "v2"` และ CLI `--schema-version v2`
+- invalid schema version fail (`unsupported schema version`)
+- wrong headers per selected version fail ใน strict mode
+- CLI report includes `schema_version`
+- schema errors include `schema_version`
+- UI server tests มี guard skip เฉพาะ environment ที่ bind `127.0.0.1` ไม่ได้ (คง coverage core logic เดิม)
+
 ## Test Files
 
 ```text
@@ -183,6 +224,9 @@ tests/
   test_report_export.test.js
   test_dashboard_ui_core.test.js
   test_ui_server.test.js
+  test_spreadsheet_adapter.test.js
+  test_spreadsheet_multifile.test.js
+  test_import_csv_cli.test.js
   fixtures/sample-data.js
 ```
 
@@ -196,6 +240,9 @@ tests/
 - Report generation still succeeds when optional fields are missing
 - UI server only exposes sanitized dashboard payloads
 - `npm run check` passes on the target Mac environment
+- strict schema violations produce `schema_errors` without exposing raw sensitive payload
+- CLI fail flags return non-zero exit codes when configured policy conditions are met
+- schema version mismatch fails with clear, version-aware error
 
 ## Test Data Policy
 
