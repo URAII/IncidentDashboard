@@ -34,8 +34,12 @@ const {
   joinRowsByIncidentId,
   ingestCsvFiles,
   CSV_SCHEMA_PROFILES,
-  DEFAULT_SCHEMA_VERSION
+  DEFAULT_SCHEMA_VERSION,
+  SCHEMA_POLICY
 } = require("./spreadsheet-adapter");
+const { ingestXlsxWorkbookFile, parseXlsxWorkbook, REQUIRED_SHEETS } = require("./xlsx-adapter");
+const { checkTemplateWorkbookDrift } = require("./template-drift");
+const { checkTemplateReleaseGovernance } = require("./template-release-governance");
 
 module.exports = {
   MASTER_DATA,
@@ -68,5 +72,11 @@ module.exports = {
   joinRowsByIncidentId,
   ingestCsvFiles,
   CSV_SCHEMA_PROFILES,
-  DEFAULT_SCHEMA_VERSION
+  DEFAULT_SCHEMA_VERSION,
+  SCHEMA_POLICY,
+  ingestXlsxWorkbookFile,
+  parseXlsxWorkbook,
+  REQUIRED_SHEETS,
+  checkTemplateWorkbookDrift,
+  checkTemplateReleaseGovernance
 };
