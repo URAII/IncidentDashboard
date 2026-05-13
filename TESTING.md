@@ -114,19 +114,34 @@ gh api \
   -F required_status_checks.contexts[]="Readiness Check"
 ```
 
-### Branch Protection Verification Status (2026-05-12)
+### Branch Protection Verification Status (2026-05-13)
 
-Verification from current environment:
+Verification from real GitHub-connected environment:
 
-- Required check name in workflow confirmed: `Readiness Check`
-- `npm run check`: pass
-- `ci.yml` YAML parse: pass
-- `git remote -v`: cannot verify (current folder is not a git repository)
-- `gh auth status`: failed (invalid token in active account)
+- `git remote -v`: `origin` set to `URAII/IncidentDashboard`
+- `gh auth status`: pass (active account `URAII`)
+- Main branch protection active:
+  - required check: `Readiness Check`
+  - `require_code_owner_reviews=true`
+  - `required_approving_review_count=1`
+  - `enforce_admins=true`
+- Test PR: `#2` (`test/template-governance` -> `main`)
+  - PR template checklist present in PR body
+  - controlled fail phase:
+    - run `25801850343`: `Run Template Drift Governance Gate (Required)=failure`
+    - `Readiness Check` failed and PR merge state `BLOCKED`
+  - fix/unblock phase:
+    - run `25802028168`: governance gate `success`, readiness gate `success`
+    - required check turned green; PR still `BLOCKED` with `REVIEW_REQUIRED` (Code Owners review policy)
+  - self-approve attempt blocked by GitHub policy:
+    - `Review Can not approve your own pull request`
 
 Conclusion:
 
-- Branch protection and PR block/unblock behavior cannot be verified end-to-end from this environment until git remote and valid `gh` authentication are available.
+- End-to-end branch protection behavior is verified:
+  - merge is blocked when required check fails
+  - required check can be unblocked after fix
+  - final merge remains blocked until Code Owners review requirement is satisfied
 
 ## Covered Areas
 

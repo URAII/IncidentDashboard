@@ -39,6 +39,7 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 23 (M19): Template release governance gate (owner/reviewer checklist + CI required gate + readiness summary)
 - Milestone 24 (M20): PR template and branch-rule guidance for template workbook changes
 - Milestone 25 (M21): CODEOWNERS coverage for template workbook governance paths
+- Milestone 26 (M22): GitHub enforcement validation (real CODEOWNERS mapping + main branch protection + PR block/unblock verification)
 
 ### Deferred
 

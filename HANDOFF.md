@@ -1548,3 +1548,120 @@ npm run check
 ### Next Recommended Task
 
 - Replace placeholder CODEOWNERS handles with real owner/reviewer teams in GitHub and enable branch protection that requires Code Owners review + `Readiness Check`.
+
+## M22 Update: GitHub Enforcement Validation (2026-05-13)
+
+### Done
+
+- Updated `.github/CODEOWNERS` from placeholder to real GitHub owner mapping:
+  - `/fixtures/xlsx-multifile/template.v2.*.xlsx @URAII`
+  - `/fixtures/xlsx-multifile/template-release.v2.json @URAII`
+- Verified owner/access on real repo environment:
+  - `git remote -v` points to `URAII/IncidentDashboard`
+  - `gh auth status` is active for account `URAII`
+  - `gh repo view` shows `viewerPermission=ADMIN` on `URAII/IncidentDashboard`
+- Enabled main branch protection with GitHub API:
+  - require status check: `Readiness Check`
+  - require Code Owners review: `true`
+  - require PR reviews (`required_approving_review_count=1`)
+  - enforce admins: `true`
+- Created test branch: `test/template-governance`
+- Opened test PR: `#2` (`test/template-governance` -> `main`)
+- Verified PR template checklist is present in PR body
+- Verified block/unblock behavior with controlled template release checklist change:
+  - fail phase: `owner_approved=false` -> `Run Template Drift Governance Gate (Required)=failure` -> required check fail -> PR blocked
+  - fix phase: restore `owner_approved=true` -> required checks pass
+- Verified Code Owners review enforcement remains active after checks pass:
+  - PR state still `BLOCKED` with `REVIEW_REQUIRED`
+  - self-approval attempt rejected: `Review Can not approve your own pull request`
+
+### Changed Files
+
+- `.github/CODEOWNERS`
+- `fixtures/xlsx-multifile/template-release.v2.json`
+- `tests/test_template_pr_docs.test.js`
+- `README.md`
+- `docs/spreadsheet-adapter.md`
+- `TESTING.md`
+- `HANDOFF.md`
+
+### Commands Run (M22)
+
+```bash
+# baseline checks
+sed -n '1,220p' AGENTS.md
+sed -n '1,260p' ROADMAP.md
+sed -n '1,260p' HANDOFF.md
+sed -n '1,260p' TESTING.md
+git remote -v
+gh auth status
+gh repo view URAII/IncidentDashboard --json viewerPermission,defaultBranchRef,nameWithOwner
+
+# codeowners + protection
+cat > .github/CODEOWNERS ...
+git add .github/CODEOWNERS
+git commit -m "chore: set real codeowner mapping for template governance" -- .github/CODEOWNERS
+git push origin main
+gh api -X PUT repos/URAII/IncidentDashboard/branches/main/protection --input /tmp/branch-protection.json
+gh api repos/URAII/IncidentDashboard/branches/main/protection --jq '{...}'
+
+# PR enforcement validation
+git switch -c test/template-governance
+git add -A && git commit -m "feat: add schema/template governance gates with failing template release for enforcement test"
+git push -u origin test/template-governance
+gh pr create --base main --head test/template-governance --title "test: template governance enforcement validation" ...
+gh pr edit 2 --body-file /tmp/pr2-body.md
+gh run view 25801850343 --json conclusion,jobs --jq '{...}'
+
+# unblock fix
+git add tests/test_template_pr_docs.test.js README.md docs/spreadsheet-adapter.md TESTING.md fixtures/xlsx-multifile/template-release.v2.json
+git commit -m "fix: restore template approval and align docs/tests with real codeowner"
+git push origin test/template-governance
+gh run view 25802028168 --json conclusion,jobs --jq '{...}'
+gh pr view 2 --json mergeStateStatus,reviewDecision,statusCheckRollup
+gh pr review 2 --approve --body "Codeowners policy verification approval."
+
+# local validation
+npm run check
+npm test
+npm run check:import:v2
+npm run check:import:v1-compat
+npm run check:import:xlsx
+npm run check:template-drift
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml"); puts "ci.yml parse ok"'
+```
+
+### Verification Results
+
+- `npm run check`: pass
+- `npm test`: pass (`105/105`)
+- `npm run check:import:v2`: pass
+- `npm run check:import:v1-compat`: pass (with expected deprecated warning)
+- `npm run check:import:xlsx`: pass
+- `npm run check:template-drift`: pass
+- `ci.yml` parse: pass (`ci.yml parse ok`)
+- Branch protection query confirms:
+  - required check `Readiness Check`
+  - Code Owners review required
+  - PR reviews required
+- PR #2 fail phase:
+  - run `25801850343`: `gate_step=failure`, `run_conclusion=failure`
+- PR #2 unblock phase:
+  - run `25802028168`: `gate_step=success`, `readiness_step=success`, `run_conclusion=success`
+  - required checks are green
+- Merge policy state after green checks:
+  - PR still `BLOCKED` with `REVIEW_REQUIRED` until Code Owners review condition is met
+
+### Sanitization Notes
+
+- All evidence/log summaries in this update use sanitized-only text.
+- No raw token/query/credential/cookie/PII was added to code, fixtures, docs, or PR body.
+
+### Risks
+
+- PR #2 cannot be fully merged by the same author account because GitHub blocks self-approval under current review policy.
+- To complete final merge/unblock in practice, a second eligible reviewer (Code Owner) must approve.
+
+### Next Recommended Task
+
+- Assign at least one additional real Code Owner reviewer account/team and complete one final approval on PR #2 to verify end-to-end merge completion after checks pass.
