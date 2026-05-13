@@ -5,7 +5,15 @@ const { prepareIncidentDataset } = require("./validation");
 
 const BOOLEAN_TRUE_VALUES = new Set(["true", "1", "yes", "y"]);
 const BOOLEAN_FALSE_VALUES = new Set(["false", "0", "no", "n"]);
-const DEFAULT_SCHEMA_VERSION = "v1";
+const DEFAULT_SCHEMA_VERSION = "v2";
+const SCHEMA_POLICY = {
+  supported_versions: ["v1", "v2"],
+  current_version: "v2",
+  default_version: DEFAULT_SCHEMA_VERSION,
+  deprecated_versions: ["v1"],
+  removal_criteria:
+    "v1 may be removed after two consecutive stable releases where CI and ingestion pipelines run on v2 only with no rollback request."
+};
 const CSV_SCHEMA_PROFILES = {
   v1: {
     incidents: {
@@ -591,10 +599,14 @@ function shapeValidationErrors(validationErrors) {
 }
 
 function ingestCsvRows(rows, options = {}) {
+  const schemaVersion = resolveSchemaVersion(options.schemaVersion);
+  const schemaWarnings = getSchemaWarnings(schemaVersion);
   const bundles = buildBundlesFromRows(rows, options);
   const validation = prepareIncidentDataset(bundles, options);
 
   return {
+    schema_version: schemaVersion,
+    schema_warnings: schemaWarnings,
     rows_count: rows.length,
     bundles_count: bundles.length,
     bundles,
@@ -625,6 +637,7 @@ function ingestCsvFile(filePath, options = {}) {
 function ingestCsvRowSets(rowSets, options = {}) {
   const schemaVersion = resolveSchemaVersion(options.schemaVersion);
   const schemaProfile = getSchemaProfile(schemaVersion);
+  const schemaWarnings = getSchemaWarnings(schemaVersion);
   const incidentsSchemaRows = rowSets.incidentsSchemaRows || rowSets.incidentsRows || [];
   const attachmentsSchemaRows = rowSets.attachmentsSchemaRows || rowSets.attachmentsRows || [];
   const evidenceSchemaRows = rowSets.evidenceSchemaRows || rowSets.evidenceRows || [];
@@ -663,6 +676,7 @@ function ingestCsvRowSets(rowSets, options = {}) {
     validBundles: validation.validBundles,
     sanitizedBundles: sanitizeBundlesForOutput(validation.validBundles),
     schema_version: schemaVersion,
+    schema_warnings: schemaWarnings,
     schema_errors: schemaErrors,
     join_errors: joinResult.errors,
     validation_errors: validation.errors,
@@ -916,6 +930,21 @@ function getSchemaProfile(schemaVersion) {
   return profile;
 }
 
+function getSchemaWarnings(schemaVersion) {
+  if (!SCHEMA_POLICY.deprecated_versions.includes(schemaVersion)) {
+    return [];
+  }
+
+  return [
+    {
+      type: "deprecated_schema_version",
+      schema_version: schemaVersion,
+      current_version: SCHEMA_POLICY.current_version,
+      message: `schema_version=${schemaVersion} is deprecated. migrate to ${SCHEMA_POLICY.current_version}`
+    }
+  ];
+}
+
 function remapRowHeaders(rows, headerMap = {}) {
   if (!headerMap || Object.keys(headerMap).length === 0) {
     return rows || [];
@@ -974,6 +1003,7 @@ function ingestCsvFiles(files, options = {}) {
 
   return {
     schema_version: schemaVersion,
+    schema_warnings: result.schema_warnings,
     source_files: {
       incidents: incidents.file_path,
       attachments: attachments?.file_path || null,
@@ -996,5 +1026,6 @@ module.exports = {
   ingestCsvFiles,
   MULTIFILE_SCHEMA,
   CSV_SCHEMA_PROFILES,
-  DEFAULT_SCHEMA_VERSION
+  DEFAULT_SCHEMA_VERSION,
+  SCHEMA_POLICY
 };

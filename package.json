@@ -7,7 +7,11 @@
   "scripts": {
     "lint": "node --check src/*.js tests/*.js ui/app.js ui/app-core.mjs scripts/*.js",
     "check:readiness": "node scripts/check-readiness.js",
-    "check": "npm run lint && npm run check:readiness && npm test",
+    "check:import:v2": "node scripts/check-import-v2.js",
+    "check:import:xlsx": "node scripts/check-import-xlsx.js",
+    "check:template-drift": "node scripts/check-template-drift.js",
+    "check:import:v1-compat": "node scripts/check-import-v1-compat.js",
+    "check": "npm run lint && npm run check:readiness && npm run check:import:v2 && npm run check:import:xlsx && npm run check:template-drift && npm run check:import:v1-compat && npm test",
     "test": "node --test",
     "ui": "node src/ui-server.js"
   }

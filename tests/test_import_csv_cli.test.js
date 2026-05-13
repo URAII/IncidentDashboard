@@ -12,7 +12,7 @@ function fixture(fileName) {
   return path.resolve(FIXTURE_DIR, fileName);
 }
 
-test("import-csv CLI runs with fixture files and writes sanitized-only bundle output", () => {
+test("import-csv CLI default schema is v2 with no default deprecation warning", () => {
   const outputPath = path.resolve(os.tmpdir(), `incident-dashboard-import-${Date.now()}.json`);
 
   const run = spawnSync(
@@ -20,11 +20,11 @@ test("import-csv CLI runs with fixture files and writes sanitized-only bundle ou
     [
       path.resolve(ROOT, "src", "import-csv.js"),
       "--incidents",
-      fixture("incidents.valid.csv"),
+      fixture("incidents.v2.valid.csv"),
       "--attachments",
-      fixture("incident_attachments.valid.csv"),
+      fixture("incident_attachments.v2.valid.csv"),
       "--evidence",
-      fixture("incident_evidence.valid.csv"),
+      fixture("incident_evidence.v2.valid.csv"),
       "--out",
       outputPath,
       "--now",
@@ -36,15 +36,17 @@ test("import-csv CLI runs with fixture files and writes sanitized-only bundle ou
   );
 
   assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.equal(/deprecated/i.test(run.stderr), false);
   assert.equal(fs.existsSync(outputPath), true);
 
   const report = JSON.parse(fs.readFileSync(outputPath, "utf8"));
-  assert.equal(report.schema_version, "v1");
+  assert.equal(report.schema_version, "v2");
+  assert.equal(report.schema_warnings.length, 0);
   assert.equal(report.join_errors.length, 0);
   assert.equal(report.validation_errors.length, 0);
   assert.equal(report.sanitized_bundles_count, 2);
 
-  const record = report.bundles.find((bundle) => bundle.incident.incident_id === "INC-M8-002");
+  const record = report.bundles.find((bundle) => bundle.incident.incident_id === "INC-M10-002");
   assert.ok(record);
   assert.equal(record.evidence.length, 0);
 
@@ -72,7 +74,7 @@ test("import-csv CLI strict schema fails with non-zero exit code on schema error
 
   const report = JSON.parse(fs.readFileSync(outputPath, "utf8"));
   assert.equal(report.schema_errors.length > 0, true);
-  assert.equal(report.schema_version, "v1");
+  assert.equal(report.schema_version, "v2");
   fs.unlinkSync(outputPath);
 });
 
@@ -141,7 +143,8 @@ test("import-csv CLI keeps flexible mode backward compatible without fail flags"
 
   assert.equal(run.status, 0, run.stderr || run.stdout);
   const report = JSON.parse(fs.readFileSync(outputPath, "utf8"));
-  assert.equal(report.schema_version, "v1");
+  assert.equal(report.schema_version, "v2");
+  assert.equal(report.schema_warnings.length, 0);
   assert.equal(report.join_errors.length > 0, true);
   fs.unlinkSync(outputPath);
 });
@@ -168,10 +171,43 @@ test("import-csv CLI supports --schema-version v2", () => {
   );
 
   assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.equal(run.stderr, "");
   const report = JSON.parse(fs.readFileSync(outputPath, "utf8"));
   assert.equal(report.schema_version, "v2");
+  assert.equal(report.schema_warnings.length, 0);
   assert.equal(report.schema_errors.length, 0);
   assert.equal(report.sanitized_bundles_count, 2);
+  fs.unlinkSync(outputPath);
+});
+
+test("import-csv CLI warns when deprecated schema version is selected", () => {
+  const outputPath = path.resolve(
+    os.tmpdir(),
+    `incident-dashboard-import-${Date.now()}-deprecated-warning.json`
+  );
+  const run = spawnSync(
+    process.execPath,
+    [
+      path.resolve(ROOT, "src", "import-csv.js"),
+      "--incidents",
+      fixture("incidents.valid.csv"),
+      "--out",
+      outputPath,
+      "--schema-version",
+      "v1"
+    ],
+    { encoding: "utf8" }
+  );
+
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.match(run.stderr, /deprecated/);
+  const report = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+  assert.ok(
+    report.schema_warnings.some(
+      (warning) =>
+        warning.type === "deprecated_schema_version" && warning.schema_version === "v1"
+    )
+  );
   fs.unlinkSync(outputPath);
 });
 
@@ -230,4 +266,55 @@ test("import-csv CLI strict schema fails when headers mismatch selected version"
     )
   );
   fs.unlinkSync(outputPath);
+});
+
+test("import-csv CLI logs stay sanitized for v1 and v2 flows", () => {
+  const v2OutputPath = path.resolve(os.tmpdir(), `incident-dashboard-import-${Date.now()}-v2-sanitized.json`);
+  const v1OutputPath = path.resolve(os.tmpdir(), `incident-dashboard-import-${Date.now()}-v1-sanitized.json`);
+
+  const v2Run = spawnSync(
+    process.execPath,
+    [
+      path.resolve(ROOT, "src", "import-csv.js"),
+      "--incidents",
+      fixture("incidents.v2.valid.csv"),
+      "--attachments",
+      fixture("incident_attachments.v2.valid.csv"),
+      "--evidence",
+      fixture("incident_evidence.v2.valid.csv"),
+      "--out",
+      v2OutputPath
+    ],
+    { encoding: "utf8" }
+  );
+
+  const v1Run = spawnSync(
+    process.execPath,
+    [
+      path.resolve(ROOT, "src", "import-csv.js"),
+      "--incidents",
+      fixture("incidents.valid.csv"),
+      "--attachments",
+      fixture("incident_attachments.valid.csv"),
+      "--evidence",
+      fixture("incident_evidence.valid.csv"),
+      "--out",
+      v1OutputPath,
+      "--schema-version",
+      "v1"
+    ],
+    { encoding: "utf8" }
+  );
+
+  assert.equal(v2Run.status, 0, v2Run.stderr || v2Run.stdout);
+  assert.equal(v1Run.status, 0, v1Run.stderr || v1Run.stdout);
+
+  const logText = `${v2Run.stdout}\n${v2Run.stderr}\n${v1Run.stdout}\n${v1Run.stderr}`;
+  assert.equal(/\?token=/i.test(logText), false);
+  assert.equal(/token=abc123/i.test(logText), false);
+  assert.equal(/password=/i.test(logText), false);
+  assert.equal(/https:\/\/.*\?/i.test(logText), false);
+
+  fs.unlinkSync(v2OutputPath);
+  fs.unlinkSync(v1OutputPath);
 });

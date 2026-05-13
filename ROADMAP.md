@@ -28,6 +28,18 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 12 (M8): Multi-file CSV ingestion (`incidents`, `incident_attachments`, `incident_evidence`) + CLI import flow
 - Milestone 13 (M9): Strict CSV schema validation per file + CI-safe CLI fail flags (`--strict-schema`, `--fail-on-join-error`, `--fail-on-validation-error`)
 - Milestone 14 (M10): CSV schema profile versioning (`v1`, `v2`) + CLI `--schema-version` + version-aware strict validation
+- Milestone 15 (M11): Schema migration guide + deprecation policy + deprecated-version warnings in CLI/report
+- Milestone 16 (M12): CI import schema gates (`v2` required + `v1` compatibility) + default `v2` cutover plan
+- Milestone 17 (M13): Default schema cutover executed (`v2` default) while keeping `v1` compatibility gate with warnings
+- Milestone 18 (M14): v1 deprecation timeline + compatibility window + usage monitoring + rollback criteria
+- Milestone 19 (M15): v1 warning threshold enforcement + CI alert/fail path + removal change-set preparation
+- Milestone 20 (M16): XLSX adapter (`incidents`/`incident_attachments`/`incident_evidence`) mapped to the same `v2` schema contract + CLI + readiness gate
+- Milestone 21 (M17): Real-template workbook compatibility coverage (sanitized fixture + edge-case tests + gate verification)
+- Milestone 22 (M18): Automated template drift check (`check:template-drift`) with fail-fast status and sanitized summary
+- Milestone 23 (M19): Template release governance gate (owner/reviewer checklist + CI required gate + readiness summary)
+- Milestone 24 (M20): PR template and branch-rule guidance for template workbook changes
+- Milestone 25 (M21): CODEOWNERS coverage for template workbook governance paths
+- Milestone 26 (M22): GitHub enforcement validation (real CODEOWNERS mapping + main branch protection + PR block/unblock verification)
 
 ### Deferred
 
@@ -64,8 +76,8 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 
 ## Recommended Next Path
 
-1. Add typed `.xlsx` ingestion wrapper that maps to the same versioned schema contract (`v1`/`v2`)
-2. Define deprecation policy/timeline for old schema versions and migration guide
+1. Tune `IMPORT_MAX_V1_WARNINGS` policy by environment (dev/stage/release) and observe trend
+2. Enforce CODEOWNERS + PR template + branch-rule policy for all template workbook changes
 3. Decide whether the next step is a persistent data store or AppSheet-safe connector wrapper
 
 ## Non-goals for this prototype

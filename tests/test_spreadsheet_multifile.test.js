@@ -154,7 +154,7 @@ test("multi-file CSV strict schema reports missing required header and field", (
       incidentsFile: fixture("incidents.valid.csv"),
       attachmentsFile: fixture("incident_attachments.missing-required-field.csv")
     },
-    { now: NOW, strictSchema: true }
+    { now: NOW, strictSchema: true, schemaVersion: "v1" }
   );
 
   assert.ok(
@@ -167,17 +167,18 @@ test("multi-file CSV strict schema reports missing required header and field", (
   );
 });
 
-test("multi-file CSV default schema version stays backward compatible (v1)", () => {
+test("multi-file CSV default schema version is v2 with no default warning", () => {
   const result = ingestCsvFiles(
     {
-      incidentsFile: fixture("incidents.valid.csv"),
-      attachmentsFile: fixture("incident_attachments.valid.csv"),
-      evidenceFile: fixture("incident_evidence.valid.csv")
+      incidentsFile: fixture("incidents.v2.valid.csv"),
+      attachmentsFile: fixture("incident_attachments.v2.valid.csv"),
+      evidenceFile: fixture("incident_evidence.v2.valid.csv")
     },
     { now: NOW, strictSchema: true }
   );
 
-  assert.equal(result.schema_version, "v1");
+  assert.equal(result.schema_version, "v2");
+  assert.equal(result.schema_warnings.length, 0);
   assert.equal(result.schema_errors.length, 0);
   assert.equal(result.validBundles.length, 2);
 });
@@ -193,6 +194,12 @@ test("multi-file CSV strict schema supports explicit v1 and v2", () => {
   );
 
   assert.equal(v1.schema_version, "v1");
+  assert.ok(
+    v1.schema_warnings.some(
+      (warning) =>
+        warning.type === "deprecated_schema_version" && warning.schema_version === "v1"
+    )
+  );
   assert.equal(v1.schema_errors.length, 0);
 
   const v2 = ingestCsvFiles(
@@ -205,8 +212,34 @@ test("multi-file CSV strict schema supports explicit v1 and v2", () => {
   );
 
   assert.equal(v2.schema_version, "v2");
+  assert.equal(v2.schema_warnings.length, 0);
   assert.equal(v2.schema_errors.length, 0);
   assert.equal(v2.validBundles.length, 2);
+});
+
+test("schema warnings show for deprecated version and not for current version", () => {
+  const deprecated = ingestCsvFiles(
+    {
+      incidentsFile: fixture("incidents.valid.csv")
+    },
+    { now: NOW, schemaVersion: "v1" }
+  );
+
+  assert.ok(
+    deprecated.schema_warnings.some(
+      (warning) =>
+        warning.type === "deprecated_schema_version" && warning.current_version === "v2"
+    )
+  );
+
+  const current = ingestCsvFiles(
+    {
+      incidentsFile: fixture("incidents.v2.valid.csv")
+    },
+    { now: NOW, schemaVersion: "v2" }
+  );
+
+  assert.equal(current.schema_warnings.length, 0);
 });
 
 test("multi-file CSV fails on invalid schema version", () => {

@@ -26,5 +26,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Readiness Gate
+      - name: Run Template Drift Governance Gate (Required)
+        run: npm run check:template-drift
+
+      - name: Run Readiness Gate (Includes Import Schema Gates)
         run: npm run check

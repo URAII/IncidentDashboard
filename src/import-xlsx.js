@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { ingestCsvFiles } = require("./spreadsheet-adapter");
+const { ingestXlsxWorkbookFile } = require("./xlsx-adapter");
 
 function parseArgs(argv) {
   const args = {};
@@ -32,7 +32,7 @@ function parseArgs(argv) {
 
 function printUsage() {
   process.stdout.write(
-    "Usage: node src/import-csv.js --incidents <file> [--attachments <file>] [--evidence <file>] --out <file> [--now <iso-date>] [--schema-version <v1|v2>] [--strict-schema] [--fail-on-join-error] [--fail-on-validation-error]\n"
+    "Usage: node src/import-xlsx.js --workbook <file> --out <file> [--now <iso-date>] [--schema-version <v1|v2>] [--strict-schema] [--fail-on-join-error] [--fail-on-validation-error]\n"
   );
 }
 
@@ -40,10 +40,10 @@ function parseBooleanFlag(value) {
   return value === true || value === "true" || value === "1";
 }
 
-function buildFailureReasons(args, result) {
+function buildFailureReasons(args, result, strictSchema) {
   const reasons = [];
 
-  if (parseBooleanFlag(args["strict-schema"]) && result.schema_errors.length > 0) {
+  if (strictSchema && result.schema_errors.length > 0) {
     reasons.push("strict_schema_error");
   }
 
@@ -69,29 +69,25 @@ function main() {
     return;
   }
 
-  if (!args.incidents || !args.out) {
+  if (!args.workbook || !args.out) {
     printUsage();
-    throw new Error("--incidents and --out are required");
+    throw new Error("--workbook and --out are required");
   }
 
-  const result = ingestCsvFiles(
-    {
-      incidentsFile: args.incidents,
-      attachmentsFile: args.attachments,
-      evidenceFile: args.evidence
-    },
-    {
-      now: args.now,
-      strictSchema: parseBooleanFlag(args["strict-schema"]),
-      schemaVersion: args["schema-version"]
-    }
-  );
+  const strictSchema =
+    args["strict-schema"] == null ? true : parseBooleanFlag(args["strict-schema"]);
+  const result = ingestXlsxWorkbookFile(args.workbook, {
+    now: args.now,
+    strictSchema,
+    schemaVersion: args["schema-version"]
+  });
 
   const output = {
     generated_at: new Date().toISOString(),
     schema_version: result.schema_version,
     schema_warnings: result.schema_warnings || [],
     source_files: result.source_files,
+    source_sheets: result.source_sheets,
     rows_count: result.rows_count,
     bundles_count: result.bundles_count,
     valid_bundles_count: result.validBundles.length,
@@ -106,7 +102,7 @@ function main() {
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
 
   process.stdout.write(
-    `Import completed: schema_version=${output.schema_version}, warnings=${output.schema_warnings.length}, bundles=${output.bundles_count}, valid=${output.valid_bundles_count}, sanitized=${output.sanitized_bundles_count}, schema_errors=${output.schema_errors.length}, join_errors=${output.join_errors.length}, validation_errors=${output.validation_errors.length}\n`
+    `XLSX import completed: schema_version=${output.schema_version}, warnings=${output.schema_warnings.length}, bundles=${output.bundles_count}, valid=${output.valid_bundles_count}, sanitized=${output.sanitized_bundles_count}, schema_errors=${output.schema_errors.length}, join_errors=${output.join_errors.length}, validation_errors=${output.validation_errors.length}\n`
   );
   process.stdout.write(`Output written: ${path.basename(outputPath)}\n`);
 
@@ -115,11 +111,11 @@ function main() {
       continue;
     }
     process.stderr.write(
-      `CSV import warning: schema_version=${warning.schema_version} is deprecated; migrate to ${warning.current_version}\n`
+      `XLSX import warning: schema_version=${warning.schema_version} is deprecated; migrate to ${warning.current_version}\n`
     );
   }
 
-  const failureReasons = buildFailureReasons(args, result);
+  const failureReasons = buildFailureReasons(args, result, strictSchema);
   if (failureReasons.length > 0) {
     throw new Error(`import failed by policy: ${failureReasons.join(",")}`);
   }
@@ -128,6 +124,6 @@ function main() {
 try {
   main();
 } catch (error) {
-  process.stderr.write(`CSV import failed: ${error.message}\n`);
+  process.stderr.write(`XLSX import failed: ${error.message}\n`);
   process.exitCode = 1;
 }
