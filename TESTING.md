@@ -23,13 +23,19 @@ npm run check
 ```text
 1. npm run lint
 2. npm run check:readiness
-3. npm test
+3. npm run check:import:v2
+4. npm run check:import:xlsx
+5. npm run check:export-contract
+6. npm test
 ```
 
 โดยมีหน้าที่ดังนี้:
 
 - `npm run lint`: ตรวจ JavaScript syntax ของ `src`, `tests`, `ui`, และ `scripts`
 - `npm run check:readiness`: ตรวจว่า fixture โหลดได้, dataset validation ผ่าน, dashboard payload สร้างได้, ไม่มี query string/fragment หลุดใน sanitized output fields, และ unsanitized evidence ไม่หลุดเข้า preview
+- `npm run check:import:v2`: ตรวจ strict import gate ของ schema `v2` จาก multi-file CSV fixtures
+- `npm run check:import:xlsx`: ตรวจ sheet-tab compatibility (`incidents`, `incident_attachments`, `incident_evidence`) สำหรับ workbook-style contract (ไม่ใช่ binary `.xlsx` parser โดยตรง)
+- `npm run check:export-contract`: ตรวจ AppSheet/Google Sheet export contract ว่า sanitized-only และไม่มี query/fragment ใน URL fields
 - `npm test`: รัน unit/regression tests ทั้งชุด
 
 ### Latest Mac Verification (2026-05-13)
@@ -44,7 +50,7 @@ npm test
 ผลที่ต้องผ่าน:
 
 - `npm run check` ผ่านครบทุก stage
-- `npm test` ผ่าน (`56 pass`, `0 fail`) และ `2 skipped` เฉพาะกรณี sandbox bind `127.0.0.1` ไม่ได้
+- `npm test` ผ่าน (`78 pass`, `0 fail`, `0 skipped`) ใน environment นี้
 
 ## CI Verification
 
@@ -55,6 +61,57 @@ GitHub Actions workflow:
 - Runtime: `ubuntu-latest` + Node.js `22`
 - Dependency install: `npm ci` (with npm cache via `actions/setup-node`)
 - Gate command: `npm run check`
+
+## AppSheet/Google Sheet Contract Checks (M24)
+
+- module tests:
+  - `tests/test_sheet_export_contract.test.js`
+  - `tests/test_export_sheet_contract_cli.test.js`
+- `buildSheetExportContract` ต้อง:
+  - export เฉพาะ sanitized child rows
+  - sanitize URL/path ซ้ำก่อนส่งออก
+  - fail เมื่อพบ blocked secret-like content ใน output row
+- CLI `src/export-sheet-contract.js` ต้อง:
+  - fail เมื่อ input ไม่ใช่ array bundles
+  - write contract JSON สำเร็จเมื่อ input ผ่าน validation
+  - stdout/stderr ใช้ sanitized summary เท่านั้น
+
+## Staging Google Sheet Connector + AppSheet Schema Checks (M25)
+
+- module tests:
+  - `tests/test_appsheet_schema_check.test.js`
+  - `tests/test_google_sheet_connector.test.js`
+  - `tests/test_export_google_sheet_cli.test.js`
+- `export-google-sheet` CLI behavior:
+  - default `dry-run` ต้องไม่ยิง API write
+  - `--staging` ต้องมี env:
+    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+    - `GOOGLE_APPLICATION_CREDENTIALS`
+  - ถ้า env ไม่ครบต้อง fail-fast
+- AppSheet compatibility check coverage:
+  - sheet/table names
+  - missing/extra columns
+  - key column presence
+  - key type/format
+- leak prevention:
+  - logs/errors ต้องไม่มี raw token/secret/credential/PII
+
+## Staging Smoke + Protected CI (M26)
+
+- smoke command:
+  - `npm run smoke:google-sheet:staging`
+- smoke behavior:
+  - default connector mode ยังคง dry-run หากไม่ใส่ `--staging`
+  - smoke command ใช้ `--staging` + `--allow-skip-missing-env`
+  - env ไม่ครบ => skip แบบชัดเจนและ exit success
+  - env ครบ => attempt staging write จริง
+- protected CI behavior:
+  - workflow job `Google Sheet Staging Smoke (Protected)` รันหลัง `Readiness Check`
+  - ถ้า secret ไม่มี จะ skip โดยไม่ fail PR ทั่วไป
+  - ถ้า secret พร้อม จะรัน staging smoke ด้วย credential file ชั่วคราว
+- leak prevention:
+  - mask spreadsheet id
+  - ไม่แสดง credential/service account/token/secret/raw URL/PII ใน log
 
 ## Branch Protection Requirement
 
@@ -227,6 +284,12 @@ tests/
   test_spreadsheet_adapter.test.js
   test_spreadsheet_multifile.test.js
   test_import_csv_cli.test.js
+  test_sheet_export_contract.test.js
+  test_export_sheet_contract_cli.test.js
+  test_appsheet_schema_check.test.js
+  test_google_sheet_connector.test.js
+  test_export_google_sheet_cli.test.js
+  test_smoke_google_sheet_staging.test.js
   fixtures/sample-data.js
 ```
 

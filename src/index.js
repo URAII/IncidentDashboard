@@ -36,6 +36,20 @@ const {
   CSV_SCHEMA_PROFILES,
   DEFAULT_SCHEMA_VERSION
 } = require("./spreadsheet-adapter");
+const {
+  buildSheetExportContract,
+  toGoogleSheetValueRanges
+} = require("./sheet-export-contract");
+const {
+  getDefaultAppSheetSchemaProfile,
+  checkAppSheetCompatibility
+} = require("./appsheet-schema-check");
+const {
+  loadContractFromFile,
+  loadSchemaProfile,
+  buildGoogleSheetsBatchUpdateRequest,
+  exportContractToGoogleSheet
+} = require("./google-sheet-connector");
 
 module.exports = {
   MASTER_DATA,
@@ -68,5 +82,13 @@ module.exports = {
   joinRowsByIncidentId,
   ingestCsvFiles,
   CSV_SCHEMA_PROFILES,
-  DEFAULT_SCHEMA_VERSION
+  DEFAULT_SCHEMA_VERSION,
+  buildSheetExportContract,
+  toGoogleSheetValueRanges,
+  getDefaultAppSheetSchemaProfile,
+  checkAppSheetCompatibility,
+  loadContractFromFile,
+  loadSchemaProfile,
+  buildGoogleSheetsBatchUpdateRequest,
+  exportContractToGoogleSheet
 };

@@ -1,0 +1,104 @@
+{
+  "schema_version": "m25.appsheet_schema.v1",
+  "tables": {
+    "incidents": {
+      "sheet_name": "incidents",
+      "key_column": "incident_id",
+      "key_type": "text",
+      "key_format": "^INC-[A-Z0-9-]+$",
+      "columns": [
+        "incident_id",
+        "incident_code",
+        "reported_at",
+        "detected_at",
+        "organization_id",
+        "organization_name",
+        "health_region",
+        "province",
+        "agency_type",
+        "incident_type",
+        "incident_category",
+        "severity",
+        "priority",
+        "status",
+        "workflow_stage",
+        "sla_status",
+        "sla_due_at",
+        "sla_elapsed_hours",
+        "sla_target_hours",
+        "summary_sanitized",
+        "affected_domain_sanitized",
+        "affected_url_sanitized",
+        "suspicious_path_sanitized",
+        "detection_source",
+        "has_image",
+        "primary_image_url",
+        "primary_image_caption",
+        "primary_image_sanitized_note",
+        "sanitized_attachment_count",
+        "sanitized_evidence_count",
+        "created_by",
+        "created_at",
+        "updated_by",
+        "updated_at",
+        "closed_at"
+      ]
+    },
+    "incident_attachments": {
+      "sheet_name": "incident_attachments",
+      "key_column": "attachment_id",
+      "key_type": "text",
+      "key_format": "^ATT-[A-Z0-9-]+$",
+      "columns": [
+        "attachment_id",
+        "incident_id",
+        "attachment_type",
+        "file_name",
+        "file_url_sanitized",
+        "file_mime_type",
+        "file_size",
+        "image_caption",
+        "image_taken_at",
+        "image_source",
+        "is_sanitized",
+        "sanitized_by",
+        "sanitized_at",
+        "sanitized_note",
+        "created_by",
+        "created_at"
+      ]
+    },
+    "incident_evidence": {
+      "sheet_name": "incident_evidence",
+      "key_column": "evidence_id",
+      "key_type": "text",
+      "key_format": "^EVD-[A-Z0-9-]+$",
+      "columns": [
+        "evidence_id",
+        "incident_id",
+        "evidence_type",
+        "evidence_text_sanitized",
+        "evidence_image_url",
+        "evidence_image_caption",
+        "evidence_url_sanitized",
+        "source_type",
+        "confidence_score",
+        "is_sanitized",
+        "sanitized_note",
+        "collected_at",
+        "created_by",
+        "created_at"
+      ]
+    },
+    "dashboard_summary": {
+      "sheet_name": "dashboard_summary",
+      "key_column": "metric",
+      "key_type": "text",
+      "key_format": "^[a-z0-9_]+$",
+      "columns": [
+        "metric",
+        "value"
+      ]
+    }
+  }
+}

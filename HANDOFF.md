@@ -730,3 +730,268 @@ npm run check
 1. เพิ่มเอกสาร migration guide `v1 -> v2` พร้อมตัวอย่าง mapping
 2. เพิ่ม deprecation policy + compatibility window ของ schema versions
 3. เพิ่ม `.xlsx` adapter ที่ map เข้าสู่ versioned CSV contract เดียวกัน
+
+## M24 AppSheet / Google Sheet Export Contract Update (2026-05-13)
+
+### Done
+
+- Added sanitized-only export contract builder for AppSheet/Google Sheet consumers:
+  - `src/sheet-export-contract.js`
+- Added CLI for contract generation from local bundle JSON:
+  - `src/export-sheet-contract.js`
+- Added readiness gate script:
+  - `scripts/check-export-contract.js`
+- Wired API exports via `src/index.js`:
+  - `buildSheetExportContract`
+  - `toGoogleSheetValueRanges`
+- Extended readiness pipeline in `package.json`:
+  - `npm run check:export-contract`
+  - `npm run check` now runs lint + readiness + export-contract + test
+
+### Contract Summary
+
+- contract version: `m24.appsheet_google_sheet.v1`
+- target tabs:
+  - `incidents`
+  - `incident_attachments`
+  - `incident_evidence`
+  - `dashboard_summary`
+- policy constraints:
+  - export only child rows where `is_sanitized=true`
+  - sanitize URL/path fields again before output
+  - fail-fast if blocked secret-like patterns remain in output rows
+  - reject URL fields that still contain query string or fragment
+
+### Changed Files
+
+- `src/sheet-export-contract.js`
+- `src/export-sheet-contract.js`
+- `scripts/check-export-contract.js`
+- `src/index.js`
+- `package.json`
+- `tests/test_sheet_export_contract.test.js`
+- `tests/test_export_sheet_contract_cli.test.js`
+- `docs/appsheet-export-contract.md`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `HANDOFF.md`
+
+### Commands Run (Sanitized)
+
+```bash
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm test`: pass (`63/63`)
+- `npm run check`: pass
+  - `npm run lint`: pass
+  - `npm run check:readiness`: pass
+  - `npm run check:export-contract`: pass
+  - `npm test`: pass
+
+### Sanitization Notes
+
+- Output contract and CLI logs are sanitized-only.
+- CLI output path is logged as filename (`basename`) only.
+- Tests assert no raw `token=` or `password=` leakage in contract/CLI output.
+
+### Risks / Remaining Limits
+
+1. M24 delivers contract + CLI only; no direct production connector push to Google APIs yet.
+2. Consumer mapping on real AppSheet columns must keep exact field names from contract docs.
+3. If future source schema changes, contract columns and consumer mapping must be versioned together.
+
+### Next Recommended Task
+
+1. Add staging connector wrapper that uploads `toGoogleSheetValueRanges(contract)` output to a test spreadsheet.
+2. Add schema compatibility check between contract columns and AppSheet table definitions before publish.
+3. Add CI job that validates a sample contract artifact against docs column lists.
+
+## M25 Staging Google Sheet Connector + AppSheet Schema Check Update (2026-05-13)
+
+### Done
+
+- Added staging connector wrapper for Google Sheets based on export contract value ranges:
+  - `src/google-sheet-connector.js`
+- Added AppSheet compatibility checker:
+  - `src/appsheet-schema-check.js`
+- Added CLI for staging/dry-run export:
+  - `src/export-google-sheet.js --input <file> --dry-run|--staging`
+- Added sample AppSheet schema profile fixture:
+  - `fixtures/appsheet-schema.m25.sample.json`
+- Added readiness/import gates:
+  - `npm run check:import:v2`
+  - `npm run check:import:xlsx`
+- Updated `npm run check` pipeline to include new gates before tests.
+
+### Safety/Policy Behaviors
+
+- default mode is `dry-run` (no Google Sheets write)
+- staging write requires explicit `--staging`
+- staging write requires env:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - `GOOGLE_APPLICATION_CREDENTIALS`
+- no hardcoded credential/token/spreadsheet secret
+- logs/output/error are sanitized-only:
+  - no raw token/secret/credential/PII
+  - spreadsheet id displayed as masked format
+- AppSheet compatibility check covers:
+  - sheet/table names
+  - missing/extra columns
+  - key column presence
+  - key type/format
+
+### Changed Files
+
+- `src/appsheet-schema-check.js`
+- `src/google-sheet-connector.js`
+- `src/export-google-sheet.js`
+- `src/index.js`
+- `scripts/check-import-v2.js`
+- `scripts/check-import-xlsx.js`
+- `fixtures/appsheet-schema.m25.sample.json`
+- `tests/test_appsheet_schema_check.test.js`
+- `tests/test_google_sheet_connector.test.js`
+- `tests/test_export_google_sheet_cli.test.js`
+- `package.json`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `docs/google-sheet-connector.md`
+- `HANDOFF.md`
+
+### Commands Run (Sanitized)
+
+```bash
+npm run check:import:v2
+npm run check:import:xlsx
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm run check:import:v2`: pass
+- `npm run check:import:xlsx`: pass
+- `npm test`: pass (`73/73`)
+- `npm run check`: pass
+  - lint: pass
+  - readiness: pass
+  - import v2 gate: pass
+  - import xlsx gate: pass
+  - export contract gate: pass
+  - tests: pass
+
+### Risks / Remaining Limits
+
+1. Staging connector requires valid Google service account credentials and spreadsheet id at runtime; current tests use dry-run/mock path only.
+2. `check:import:xlsx` in this branch validates workbook-style sheet-tab contract compatibility (not direct binary `.xlsx` file parser).
+3. Before production-like use, service account sharing/permissions on staging spreadsheet must be configured externally.
+
+### Next Recommended Task
+
+1. Add integration smoke (manual/CI-secured) that runs `export-google-sheet --staging` against a dedicated staging spreadsheet with masked audit output.
+2. Add optional drift check between `fixtures/appsheet-schema.m25.sample.json` and real AppSheet table metadata export.
+3. Add release policy that blocks staging write when AppSheet schema warnings exceed threshold.
+
+## M26 Staging Google Sheet Smoke + Protected CI Update (2026-05-14)
+
+### Done
+
+- Added staging smoke script:
+  - `scripts/smoke-google-sheet-staging.js`
+- Added npm command:
+  - `npm run smoke:google-sheet:staging`
+- Added protected CI smoke job in `.github/workflows/ci.yml`:
+  - job name: `Google Sheet Staging Smoke (Protected)`
+  - runs after `Readiness Check`
+  - prepares credentials only when secret exists
+  - skips safely when secrets are not available
+- Added M26 tests:
+  - `tests/test_smoke_google_sheet_staging.test.js`
+  - updated `tests/test_export_google_sheet_cli.test.js` for explicit staging flag behavior
+
+### Changed Files
+
+- `.github/workflows/ci.yml`
+- `scripts/smoke-google-sheet-staging.js`
+- `package.json`
+- `tests/test_smoke_google_sheet_staging.test.js`
+- `tests/test_export_google_sheet_cli.test.js`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/google-sheet-connector.md`
+- `HANDOFF.md`
+
+### Staging Smoke Behavior
+
+- default connector behavior remains `dry-run`
+- staging write requires explicit `--staging`
+- staging requires env:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - `GOOGLE_APPLICATION_CREDENTIALS`
+- smoke command uses:
+  - `--staging --allow-skip-missing-env`
+  - if env missing => prints `status=skip` and exits success
+
+### Protected CI Behavior
+
+- secret-aware setup step writes credential file only when `GOOGLE_APPLICATION_CREDENTIALS_JSON` exists
+- exports env via `GITHUB_ENV` without printing secret values
+- when secrets are absent, smoke script skip path keeps job green and avoids failing generic PRs
+
+### Environment Verification (Current Machine)
+
+- `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`: `UNSET`
+- `GOOGLE_APPLICATION_CREDENTIALS`: `UNSET`
+- result: real staging write cannot be executed from this machine now; smoke skip path verified
+
+### Commands Run (Sanitized)
+
+```bash
+node --test tests/test_smoke_google_sheet_staging.test.js
+node --test tests/test_export_google_sheet_cli.test.js
+npm run smoke:google-sheet:staging
+node src/export-sheet-contract.js --in fixtures/sample-incident-bundles.json --out /private/tmp/m26-sheet-contract.json --now 2026-05-12T12:00:00.000Z
+node src/export-google-sheet.js --input /private/tmp/m26-sheet-contract.json --schema fixtures/appsheet-schema.m25.sample.json --dry-run
+node src/export-google-sheet.js --input /private/tmp/m26-sheet-contract.json --schema fixtures/appsheet-schema.m25.sample.json --staging
+npm run check:import:v2
+npm run check:import:xlsx
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm run check:import:v2`: pass
+- `npm run check:import:xlsx`: pass
+- `npm test`: pass (`78/78`)
+- `npm run check`: pass
+- `npm run smoke:google-sheet:staging`: skip path pass (env missing)
+- dry-run contract export: pass, no Google write
+- explicit `--staging` without env: fail-fast as expected
+
+### Sanitization Notes
+
+- logs are summary-only and masked where needed
+- no raw credential/token/service-account/secret/PII in output
+- spreadsheet id is masked in staging result payload
+
+### Risks / Remaining Limits
+
+1. Real staging write end-to-end remains contingent on runtime env + valid service account permissions.
+2. `check:import:xlsx` is still sheet-tab compatibility gate, not direct binary `.xlsx` parser.
+3. CI smoke depends on secure secret provisioning and periodic credential rotation policy.
+
+### Next Recommended Task
+
+1. Provision staging secrets in GitHub Actions and run one protected workflow to validate real staging write success path.
+2. Add binary `.xlsx` parsing gate if required by upcoming ingestion roadmap.
+3. Add credential rotation/audit checklist for service account and staging spreadsheet access.

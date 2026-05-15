@@ -28,6 +28,9 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 12 (M8): Multi-file CSV ingestion (`incidents`, `incident_attachments`, `incident_evidence`) + CLI import flow
 - Milestone 13 (M9): Strict CSV schema validation per file + CI-safe CLI fail flags (`--strict-schema`, `--fail-on-join-error`, `--fail-on-validation-error`)
 - Milestone 14 (M10): CSV schema profile versioning (`v1`, `v2`) + CLI `--schema-version` + version-aware strict validation
+- Milestone 15 (M24): AppSheet / Google Sheet export contract (sanitized-only tabs + CLI contract generator)
+- Milestone 16 (M25): Staging Google Sheet connector wrapper + AppSheet schema compatibility check (dry-run by default, staging explicit)
+- Milestone 17 (M26): Staging smoke command + protected CI execution with secret-aware skip behavior
 
 ### Deferred
 
@@ -64,9 +67,9 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 
 ## Recommended Next Path
 
-1. Add typed `.xlsx` ingestion wrapper that maps to the same versioned schema contract (`v1`/`v2`)
-2. Define deprecation policy/timeline for old schema versions and migration guide
-3. Decide whether the next step is a persistent data store or AppSheet-safe connector wrapper
+1. Add direct binary `.xlsx` parser gate (current `check:import:xlsx` is sheet-tab compatibility only)
+2. Add credential rotation and audit checklist for staging service account
+3. Add deployment policy for staged-to-production sheet promotion with approval checkpoint
 
 ## Non-goals for this prototype
 

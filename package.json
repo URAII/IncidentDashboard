@@ -7,7 +7,11 @@
   "scripts": {
     "lint": "node --check src/*.js tests/*.js ui/app.js ui/app-core.mjs scripts/*.js",
     "check:readiness": "node scripts/check-readiness.js",
-    "check": "npm run lint && npm run check:readiness && npm test",
+    "check:import:v2": "node scripts/check-import-v2.js",
+    "check:import:xlsx": "node scripts/check-import-xlsx.js",
+    "check:export-contract": "node scripts/check-export-contract.js",
+    "smoke:google-sheet:staging": "node scripts/smoke-google-sheet-staging.js --staging --allow-skip-missing-env --schema fixtures/appsheet-schema.m25.sample.json",
+    "check": "npm run lint && npm run check:readiness && npm run check:import:v2 && npm run check:import:xlsx && npm run check:export-contract && npm test",
     "test": "node --test",
     "ui": "node src/ui-server.js"
   }

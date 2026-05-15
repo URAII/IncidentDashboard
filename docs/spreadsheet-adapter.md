@@ -8,6 +8,8 @@
 
 - `src/spreadsheet-adapter.js`
 - `src/import-csv.js`
+- `src/sheet-export-contract.js` (M24 export contract)
+- `src/export-sheet-contract.js` (M24 CLI)
 
 ## Supported Modes
 
@@ -108,6 +110,40 @@ Exit behavior:
 - secret-like content ใน sanitized narrative จะถูก reject
 - output จาก CLI ใช้ `sanitizedBundles` (child ที่ `is_sanitized=false` จะไม่ถูกส่งออก)
 - log/error text ใช้ข้อมูลเชิงโครงสร้างเท่านั้น (entity/header/field/row) ไม่ dump raw sensitive payload
+
+## AppSheet / Google Sheet Export Contract (M24)
+
+- contract version: `m24.appsheet_google_sheet.v1`
+- CLI: `node src/export-sheet-contract.js --in <bundles.json> --out <contract.json>`
+- output sheets:
+  - `incidents`
+  - `incident_attachments`
+  - `incident_evidence`
+  - `dashboard_summary`
+- child rows export เฉพาะ `is_sanitized=true`
+- URL fields (`*_url_sanitized`) ต้องไม่มี query/fragment เสมอ
+- helper: `toGoogleSheetValueRanges(contract)` สำหรับแปลงเป็น 2D arrays ต่อ sheet
+
+รายละเอียด schema เพิ่มเติม: [docs/appsheet-export-contract.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/appsheet-export-contract.md)
+
+## Google Sheet Staging Connector + AppSheet Schema Check (M25)
+
+- staging wrapper CLI:
+  - `node src/export-google-sheet.js --input <contract.json> --dry-run`
+  - `node src/export-google-sheet.js --input <contract.json> --staging`
+- default mode เป็น `dry-run`
+- staging write จะเกิดขึ้นเฉพาะเมื่อ:
+  - ใช้ `--staging`
+  - มี env `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - มี env `GOOGLE_APPLICATION_CREDENTIALS`
+  - AppSheet compatibility check ผ่าน
+- compatibility check ครอบคลุม:
+  - sheet/table names
+  - missing/extra columns
+  - key column presence
+  - key type/format
+
+รายละเอียดเพิ่ม: [docs/google-sheet-connector.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/google-sheet-connector.md)
 
 ## Fixtures
 

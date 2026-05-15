@@ -14,10 +14,67 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 npm install
 npm run check
 npm test
+npm run check:import:v2
+npm run check:import:xlsx
+npm run smoke:google-sheet:staging
 npm run ui
 ```
 
 UI endpoint: `http://127.0.0.1:4173`
+
+## AppSheet / Google Sheet Export Contract (M24)
+
+รองรับการสร้าง export contract แบบ sanitized-only สำหรับใช้งานกับ AppSheet/Google Sheet โดยไม่ผูก connector production ตรง:
+
+```bash
+node src/export-sheet-contract.js \
+  --in fixtures/sample-incident-bundles.json \
+  --out /private/tmp/sheet-export-contract.json \
+  --now 2026-05-12T12:00:00.000Z
+```
+
+ผลลัพธ์จะได้ tabs contract:
+
+- `incidents`
+- `incident_attachments` (เฉพาะ `is_sanitized=true`)
+- `incident_evidence` (เฉพาะ `is_sanitized=true`)
+- `dashboard_summary`
+
+ดูรายละเอียด schema ที่ [docs/appsheet-export-contract.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/appsheet-export-contract.md)
+
+## Google Sheet Staging Connector + AppSheet Schema Check (M25)
+
+รองรับ staging wrapper สำหรับส่ง contract ไป test spreadsheet โดย `dry-run` เป็นค่าเริ่มต้น:
+
+```bash
+node src/export-google-sheet.js \
+  --input /private/tmp/sheet-export-contract.json \
+  --dry-run
+```
+
+```bash
+node src/export-google-sheet.js \
+  --input /private/tmp/sheet-export-contract.json \
+  --schema fixtures/appsheet-schema.m25.sample.json \
+  --staging
+```
+
+staging mode ต้องมี env:
+
+- `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+- `GOOGLE_APPLICATION_CREDENTIALS`
+
+ถ้าไม่มี `--staging` จะไม่ส่ง API write จริง
+
+รายละเอียด connector/check: [docs/google-sheet-connector.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/google-sheet-connector.md)
+
+Protected CI smoke behavior:
+
+- staging smoke runs with protected secrets only
+- missing secrets => skip with explicit status (does not fail generic PR)
+- when secrets are present, smoke attempts real `--staging` write
+
+หมายเหตุ: `check:import:xlsx` ปัจจุบันเป็น sheet-tab compatibility gate สำหรับ workbook-style contract ยังไม่ใช่ binary `.xlsx` parser โดยตรง
 
 ## Spreadsheet CSV Import
 
