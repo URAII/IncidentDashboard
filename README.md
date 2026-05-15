@@ -16,6 +16,8 @@ npm run check
 npm test
 npm run check:import:v2
 npm run check:import:xlsx
+npm run check:import:xlsx:binary
+npm run check:template-drift
 npm run smoke:google-sheet:staging
 npm run ui
 ```
@@ -74,7 +76,35 @@ Protected CI smoke behavior:
 - missing secrets => skip with explicit status (does not fail generic PR)
 - when secrets are present, smoke attempts real `--staging` write
 
-หมายเหตุ: `check:import:xlsx` ปัจจุบันเป็น sheet-tab compatibility gate สำหรับ workbook-style contract ยังไม่ใช่ binary `.xlsx` parser โดยตรง
+## Release Candidate Runbook (M29)
+
+- Production runbook: [docs/production-runbook.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/production-runbook.md)
+- required gates:
+  - `npm test`
+  - `npm run check`
+  - `npm run check:import:v2`
+  - `npm run check:import:xlsx`
+  - `npm run check:import:xlsx:binary`
+  - `npm run check:template-drift`
+- optional gates:
+  - `npm run check:import:v1-compat`
+  - `npm run smoke:google-sheet:staging`
+- schema migration policy + v1 EOL/removal:
+  - [docs/schema-migration.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/schema-migration.md)
+
+หมายเหตุ:
+
+- `check:import:xlsx` เป็น sheet-tab compatibility gate สำหรับ workbook-style contract
+- `check:import:xlsx:binary` เป็น binary `.xlsx` parser gate สำหรับตรวจ workbook/sheet/header/cell format จากไฟล์จริง
+- `check:template-drift` เป็น template governance gate สำหรับ header/sheet drift บน workbook template v2
+
+## Operational Closure Notes (M30)
+
+- protected staging smoke write success ต้องใช้ GitHub secrets:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+- branch protection บน `main` ต้อง require `Readiness Check`
+- v1 compatibility มี end-of-support date: `2026-09-30`
 
 ## Spreadsheet CSV Import
 

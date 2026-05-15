@@ -1029,6 +1029,12 @@ npm run check
   - `Readiness Check`: success
   - `Google Sheet Staging Smoke (Protected)`: success
   - smoke log result: `status=skip` because required secrets/env were missing
+- latest verification run:
+  - run id: `25922970895`
+  - workflow: `CI`
+  - `Readiness Check`: success
+  - `Google Sheet Staging Smoke (Protected)`: success
+  - smoke log result: `status=skip` because required secrets/env were missing
 
 ### Commands Run (Sanitized)
 
@@ -1039,6 +1045,8 @@ git push origin chore/final-codeowners-reviewer
 gh run list --repo URAII/IncidentDashboard --workflow ci.yml --branch chore/final-codeowners-reviewer --limit 3
 gh run watch 25922859625 --repo URAII/IncidentDashboard --exit-status
 gh run view 25922859625 --repo URAII/IncidentDashboard --job 76196242087 --log
+gh run view 25922970895 --repo URAII/IncidentDashboard --json conclusion,name,event,workflowName,jobs,url
+gh run view 25922970895 --repo URAII/IncidentDashboard --job 76196622718 --log
 npm run check:import:v2
 npm run check:import:xlsx
 npm test
@@ -1049,7 +1057,7 @@ npm run check
 
 - `npm run check:import:v2`: pass
 - `npm run check:import:xlsx`: pass
-- `npm test`: pass (`78/78`)
+- `npm test`: pass (`76 pass`, `2 skipped`, `0 fail`) in current local sandbox
 - `npm run check`: pass
 - protected CI smoke on GitHub:
   - skip path verified and non-failing when secrets are absent
@@ -1060,6 +1068,7 @@ npm run check
 1. Real staging write success path cannot be executed until repository secrets are populated with valid values.
 2. Current session cannot set secrets from env because required env values are not present.
 3. `check:import:xlsx` remains sheet-tab compatibility gate (not direct binary parser).
+4. GitHub Actions log reports Node.js 20 deprecation warning for action runtime; workflow should be monitored for upstream action runtime updates.
 
 ### Next Recommended Task
 
@@ -1068,3 +1077,228 @@ npm run check
    - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
 2. Re-run workflow `CI` and confirm protected smoke output shows staging write completion (not skip).
 3. Capture masked run evidence (`run id`, `job status`, `updated rows`) in HANDOFF for final staging-write sign-off.
+
+## M28 Binary XLSX Parser Gate (2026-05-15)
+
+### Done
+
+- Added binary workbook parser gate for real `.xlsx` ingestion checks:
+  - workbook zip integrity
+  - required sheets
+  - strict v2 header/field schema checks
+  - date format checks
+  - unsafe sanitized-field checks
+- Added gate script `npm run check:import:xlsx:binary`
+- Kept existing `check:import:xlsx` as sheet-tab compatibility gate (separate purpose)
+
+### Changed Files (M28)
+
+- `src/xlsx-binary-parser.js`
+- `scripts/check-import-xlsx-binary.js`
+- `tests/test_xlsx_binary_parser.test.js`
+- `tests/fixtures/xlsx-binary/template.v2.binary.valid.xlsx`
+- `package.json`
+- `src/index.js`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `HANDOFF.md`
+
+### Commands Run (Sanitized)
+
+```bash
+node scripts/check-import-xlsx-binary.js
+node --test tests/test_xlsx_binary_parser.test.js
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm run check:import:xlsx:binary`: pass
+- `node --test tests/test_xlsx_binary_parser.test.js`: pass
+- `npm test`: pass (`83 pass`, `2 skipped`, `0 fail`)
+- `npm run check`: pass (includes `check:import:xlsx:binary`)
+
+### Sanitization Notes
+
+- parser errors/log output are structural and sanitized-only (`workbook_id`, `sheet_name`, `field`, `row_number`, `type`)
+- no raw URL query/token/credential/PII values are printed
+- unsafe row tests confirm sensitive token-like content is not leaked back in output
+
+### Risks / Remaining Limits
+
+1. Parser uses system `unzip` command; environments without `unzip` need dependency provisioning.
+2. Binary gate currently targets `.xlsx` OpenXML structure used by template flow; non-standard workbook variants may need additional handling.
+3. M27 real staging write path remains blocked until secrets are configured.
+
+### Next Recommended Task
+
+1. Add protected CI step for `npm run check:import:xlsx:binary` visibility if separate reporting is needed.
+2. Add workbook-level schema version negotiation for future `v3` template evolution.
+3. Complete M27 real staging write verification after repo secrets are available.
+
+## M29 Release Candidate Readiness + Production Runbook (2026-05-15)
+
+### Done
+
+- Added production runbook for release candidate operations:
+  - `docs/production-runbook.md`
+- Documented end-to-end ingestion/output flow:
+  - AppSheet/Google Sheet/XLSX/CSV -> adapter -> validation/sanitization -> dashboard payload -> report/export
+- Added template governance gate:
+  - `npm run check:template-drift`
+- Added optional compatibility gate script:
+  - `npm run check:import:v1-compat`
+- Updated readiness pipeline to include `check:template-drift` inside `npm run check`
+
+### Changed Files (M29)
+
+- `docs/production-runbook.md`
+- `src/template-drift-check.js`
+- `scripts/check-template-drift.js`
+- `scripts/check-import-v1-compat.js`
+- `fixtures/xlsx-multifile/template.v2.sanitized.xlsx`
+- `fixtures/xlsx-multifile/template-release.v2.json`
+- `tests/test_template_drift_check.test.js`
+- `package.json`
+- `src/index.js`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/spreadsheet-adapter.md`
+- `HANDOFF.md`
+
+### Commands Run (Sanitized)
+
+```bash
+npm test
+npm run check
+npm run check:import:v2
+npm run check:import:xlsx
+npm run check:import:xlsx:binary
+npm run check:template-drift
+```
+
+### Verification Results
+
+- `npm test`: pass (`88 pass`, `2 skipped`, `0 fail`)
+- `npm run check`: pass
+- `npm run check:import:v2`: pass
+- `npm run check:import:xlsx`: pass
+- `npm run check:import:xlsx:binary`: pass
+- `npm run check:template-drift`: pass
+
+### Final Readiness Summary
+
+- release candidate gates are operational and documented
+- required gates and optional gates are now explicitly separated in runbook/docs
+- rollback steps and troubleshooting are documented for operational handoff
+
+### Risks / Remaining Limits
+
+1. Real staging write verification still depends on repository secrets being configured.
+2. Binary/template gates depend on system `unzip` availability in runtime environment.
+3. `check:import:v1-compat` is optional and should be retired when v1 support window ends.
+
+### Next Operational Tasks
+
+1. Configure staging secrets and run one successful protected staging write to close M27 success-path verification.
+2. Enforce branch protection required checks to include `Readiness Check` on target branch.
+3. Define v1 support end date and remove optional v1 compatibility gate when policy allows.
+
+## M30 Operational Release Closure (2026-05-15)
+
+### Done
+
+- Verified GitHub auth status and repository branch protection from real environment.
+- Verified `main` branch protection requires status check `Readiness Check`.
+- Confirmed branch protection enforcement is already active (`BRANCH_PROTECTION=ALREADY_ENFORCED`).
+- Attempted to set staging secrets from environment; blocked by missing env values (`SECRETS_SET=NO_MISSING_ENV`).
+- Added CI unzip guard step in `.github/workflows/ci.yml`.
+- Added schema migration policy doc with v1 EOL + removal plan:
+  - `docs/schema-migration.md`
+- Updated production runbook with:
+  - required/optional gates
+  - troubleshooting
+  - rollback procedure
+  - v1 support timeline
+
+### Operational Verification (Sanitized)
+
+- GitHub auth: pass
+- local secret env status:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID=UNSET`
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON=UNSET`
+- repository secret list: no configured entries returned
+- branch protection (`main`) includes:
+  - required status check: `Readiness Check`
+  - require pull request review: enabled
+  - require code owner review: enabled
+
+### Changed Files (M30)
+
+- `.github/workflows/ci.yml`
+- `docs/production-runbook.md`
+- `docs/schema-migration.md`
+- `docs/google-sheet-connector.md`
+- `README.md`
+- `ROADMAP.md`
+- `TESTING.md`
+- `HANDOFF.md`
+
+### Commands Run (Sanitized)
+
+```bash
+gh auth status
+gh secret list --repo URAII/IncidentDashboard
+gh api repos/URAII/IncidentDashboard/branches/main/protection
+if [ -n \"$GOOGLE_SHEETS_STAGING_SPREADSHEET_ID\" ] && [ -n \"$GOOGLE_APPLICATION_CREDENTIALS_JSON\" ]; then gh secret set ...; else echo SECRETS_SET=NO_MISSING_ENV; fi
+PROTECTION_JSON=\"$(gh api repos/URAII/IncidentDashboard/branches/main/protection)\" && ...
+gh run list --repo URAII/IncidentDashboard --limit 3
+npm test
+npm run check
+npm run check:import:v2
+npm run check:import:xlsx
+npm run check:import:xlsx:binary
+npm run check:template-drift
+```
+
+### Verification Results
+
+- `npm test`: pass (`86 pass`, `2 skipped`, `0 fail`)
+- `npm run check`: pass
+- `npm run check:import:v2`: pass
+- `npm run check:import:xlsx`: pass
+- `npm run check:import:xlsx:binary`: pass
+- `npm run check:template-drift`: pass
+
+### Deferred / Not Completed in This Environment
+
+1. Setting repository secrets could not be completed because required secret values are not present in local env/session.
+2. Protected staging smoke write success-path cannot be verified until both secrets are configured with valid values.
+
+### v1 End-of-Support and Removal Plan
+
+- v1 end-of-support date: `2026-09-30`
+- removal phase starts: `2026-10-01`
+- detailed removal + rollback plan: `docs/schema-migration.md`
+
+### Risks
+
+1. Staging write success-path remains unverified until secrets are populated.
+2. Binary/template gates rely on `unzip` availability in CI runtime.
+3. v1 compatibility path must be removed on schedule to avoid long-tail maintenance risk.
+
+### Final Operational Status
+
+- Required readiness and import gates are passing locally.
+- Branch protection requirement for `Readiness Check` is enforced on `main`.
+- Operational closure is partially complete; staging secrets provisioning + write success verification remain pending.
+
+### Next Operational Tasks
+
+1. Configure `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` in GitHub Actions secrets.
+2. Trigger CI and confirm `Google Sheet Staging Smoke (Protected)` reports write-path success (not skip).
+3. Capture masked CI evidence and close deferred item in this handoff.

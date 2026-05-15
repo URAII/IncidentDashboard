@@ -25,8 +25,10 @@ npm run check
 2. npm run check:readiness
 3. npm run check:import:v2
 4. npm run check:import:xlsx
-5. npm run check:export-contract
-6. npm test
+5. npm run check:import:xlsx:binary
+6. npm run check:template-drift
+7. npm run check:export-contract
+8. npm test
 ```
 
 โดยมีหน้าที่ดังนี้:
@@ -35,10 +37,12 @@ npm run check
 - `npm run check:readiness`: ตรวจว่า fixture โหลดได้, dataset validation ผ่าน, dashboard payload สร้างได้, ไม่มี query string/fragment หลุดใน sanitized output fields, และ unsanitized evidence ไม่หลุดเข้า preview
 - `npm run check:import:v2`: ตรวจ strict import gate ของ schema `v2` จาก multi-file CSV fixtures
 - `npm run check:import:xlsx`: ตรวจ sheet-tab compatibility (`incidents`, `incident_attachments`, `incident_evidence`) สำหรับ workbook-style contract (ไม่ใช่ binary `.xlsx` parser โดยตรง)
+- `npm run check:import:xlsx:binary`: ตรวจ binary `.xlsx` parser gate จากไฟล์ workbook จริง (integrity/sheet/header/cell format/date/unsafe data)
+- `npm run check:template-drift`: ตรวจ template governance drift (missing required header, unknown header, duplicate header, wrong sheet name)
 - `npm run check:export-contract`: ตรวจ AppSheet/Google Sheet export contract ว่า sanitized-only และไม่มี query/fragment ใน URL fields
 - `npm test`: รัน unit/regression tests ทั้งชุด
 
-### Latest Mac Verification (2026-05-13)
+### Latest Mac Verification (2026-05-15)
 
 ยืนยันรอบล่าสุดบน Mac:
 
@@ -50,7 +54,7 @@ npm test
 ผลที่ต้องผ่าน:
 
 - `npm run check` ผ่านครบทุก stage
-- `npm test` ผ่าน (`78 pass`, `0 fail`, `0 skipped`) ใน environment นี้
+- `npm test` ผ่าน (`86 pass`, `0 fail`, `2 skipped`) ใน environment นี้
 
 ## CI Verification
 
@@ -61,6 +65,7 @@ GitHub Actions workflow:
 - Runtime: `ubuntu-latest` + Node.js `22`
 - Dependency install: `npm ci` (with npm cache via `actions/setup-node`)
 - Gate command: `npm run check`
+- Readiness job includes `Verify unzip Availability` ก่อน run gates
 
 ## AppSheet/Google Sheet Contract Checks (M24)
 
@@ -117,7 +122,7 @@ GitHub Actions workflow:
 
 - verified protected workflow run:
   - workflow: `CI`
-  - run id: `25922859625`
+  - run ids: `25922859625`, `25922970895`
   - branch: `chore/final-codeowners-reviewer`
   - jobs:
     - `Readiness Check` => success
@@ -129,6 +134,53 @@ GitHub Actions workflow:
   - set repo secrets:
     - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
     - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+  - rerun protected workflow and confirm smoke output is staging-write complete (not `status=skip`)
+
+## Binary XLSX Parser Gate (M28)
+
+- module test:
+  - `tests/test_xlsx_binary_parser.test.js`
+- fixture workbook:
+  - `tests/fixtures/xlsx-binary/template.v2.binary.valid.xlsx`
+- coverage:
+  - valid workbook pass
+  - corrupted workbook fail
+  - missing sheet fail
+  - wrong header fail
+  - blank rows handling
+  - invalid date format fail
+  - unsafe data fail + leak prevention
+
+## Template Drift Gate (M29)
+
+- module/script:
+  - `src/template-drift-check.js`
+  - `scripts/check-template-drift.js`
+- template fixtures:
+  - `fixtures/xlsx-multifile/template.v2.sanitized.xlsx`
+  - `fixtures/xlsx-multifile/template-release.v2.json`
+- coverage:
+  - valid template pass
+  - missing fixture fail
+  - sanitized output for template errors
+
+## Optional Gates (M29)
+
+- `npm run check:import:v1-compat`
+- `npm run smoke:google-sheet:staging`
+
+## Operational Closure Verification (M30)
+
+- branch protection (`main`) verified from GitHub API:
+  - required status check: `Readiness Check`
+  - pull request review required
+  - code owner review required
+- protected staging smoke success-path prerequisites:
+  - GitHub secrets present (`GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`, `GOOGLE_APPLICATION_CREDENTIALS_JSON`)
+  - current environment status: both secrets `UNSET`, so write-success path remains pending
+- schema support timeline:
+  - v1 end-of-support: `2026-09-30`
+  - post-EOL removal plan: [docs/schema-migration.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/schema-migration.md)
 
 ## Branch Protection Requirement
 
@@ -165,19 +217,21 @@ gh api \
   -F required_status_checks.contexts[]="Readiness Check"
 ```
 
-### Branch Protection Verification Status (2026-05-12)
+### Branch Protection Verification Status (2026-05-15)
 
 Verification from current environment:
 
 - Required check name in workflow confirmed: `Readiness Check`
 - `npm run check`: pass
 - `ci.yml` YAML parse: pass
-- `git remote -v`: cannot verify (current folder is not a git repository)
-- `gh auth status`: failed (invalid token in active account)
+- `git remote -v`: verified (`origin` connected)
+- `gh auth status`: pass (authenticated account with `repo` + `workflow` scopes)
+- GitHub API protection (`main`): required status check includes `Readiness Check`
 
 Conclusion:
 
-- Branch protection and PR block/unblock behavior cannot be verified end-to-end from this environment until git remote and valid `gh` authentication are available.
+- Branch protection requirement for `Readiness Check` is enforced on `main`.
+- End-to-end staging write success path still depends on secrets provisioning.
 
 ## Covered Areas
 

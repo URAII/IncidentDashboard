@@ -32,6 +32,9 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 16 (M25): Staging Google Sheet connector wrapper + AppSheet schema compatibility check (dry-run by default, staging explicit)
 - Milestone 17 (M26): Staging smoke command + protected CI execution with secret-aware skip behavior
 - Milestone 18 (M27): GitHub protected staging workflow verification (skip-path validated, parse-safe workflow update)
+- Milestone 19 (M28): Binary `.xlsx` parser gate for real workbook ingestion validation (`check:import:xlsx:binary`)
+- Milestone 20 (M29): Release candidate readiness + production runbook + template drift gate (`check:template-drift`)
+- Milestone 21 (M30): Operational release closure (branch protection verification, unzip CI guard, v1 EOL/removal plan, rollback runbook)
 
 ### Deferred
 
@@ -69,8 +72,8 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 ## Recommended Next Path
 
 1. Configure real staging secrets in GitHub and verify one successful protected staging write run
-2. Add direct binary `.xlsx` parser gate (current `check:import:xlsx` is sheet-tab compatibility only)
-3. Add credential rotation and audit checklist for staging service account
+2. Add credential rotation and audit checklist for staging service account
+3. Execute v1 removal phase after `2026-09-30` per schema migration policy
 
 ## Non-goals for this prototype
 

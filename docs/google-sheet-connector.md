@@ -79,7 +79,7 @@ npm run smoke:google-sheet:staging
 
 - protected workflow parse issue was fixed by removing parse-time secret expression branching and using runtime shell guards
 - verified run (masked evidence):
-  - workflow run id: `25922859625`
+  - workflow run ids: `25922859625`, `25922970895`
   - `Readiness Check`: success
   - `Google Sheet Staging Smoke (Protected)`: success with skip-path when secrets are absent
 - if secrets are absent:
@@ -88,6 +88,18 @@ npm run smoke:google-sheet:staging
 - to verify real staging write success path:
   - configure both secrets in repository settings
   - rerun workflow and confirm smoke output shows staging write completion (no skip)
+
+## M30 Operational Closure Notes
+
+- required secrets for write-path:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+- if secrets are missing:
+  - protected smoke must skip clearly without failing generic PR flows
+- if secrets are present:
+  - protected smoke should report write-path success (not `status=skip`)
+- evidence policy:
+  - record only masked/sanitized run evidence in docs/handoff
 
 ## Notes
 

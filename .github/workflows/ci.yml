@@ -23,6 +23,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
+      - name: Verify unzip Availability
+        run: |
+          which unzip
+          unzip -v | head -n 2
+
       - name: Install Dependencies
         run: npm ci
 

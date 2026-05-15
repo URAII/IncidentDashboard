@@ -145,6 +145,51 @@ Exit behavior:
 
 รายละเอียดเพิ่ม: [docs/google-sheet-connector.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/google-sheet-connector.md)
 
+## Binary XLSX Parser Gate (M28)
+
+- parser module: `src/xlsx-binary-parser.js`
+- gate script: `scripts/check-import-xlsx-binary.js`
+- readiness command: `npm run check:import:xlsx:binary`
+
+สิ่งที่ตรวจจากไฟล์ `.xlsx` จริง:
+
+- zip/workbook integrity (corrupted workbook detection)
+- required sheets: `incidents`, `incident_attachments`, `incident_evidence`
+- strict headers/required fields ตาม `schema_version=v2`
+- duplicate headers, blank rows, invalid date format, unsafe sanitized fields
+- join/schema/validation flow เดิมผ่าน `ingestCsvRowSets` (ไม่ bypass policy เดิม)
+
+ผลลัพธ์เป็น sanitized summary เท่านั้น:
+
+- `schema_version`
+- `workbook_id` (basename-sanitized)
+- rows counts / status / error counts
+
+## Template Drift Governance Gate (M29)
+
+- drift module: `src/template-drift-check.js`
+- gate script: `scripts/check-template-drift.js`
+- command: `npm run check:template-drift`
+
+ตรวจ template release fixture:
+
+- manifest: `fixtures/xlsx-multifile/template-release.v2.json`
+- workbook: `fixtures/xlsx-multifile/template.v2.sanitized.xlsx`
+
+drift detection:
+
+- missing required headers
+- unknown headers
+- duplicate headers
+- wrong/missing required sheet names
+
+summary output เป็น sanitized-only:
+
+- `schema_version`
+- `template_id`
+- `workbook_id`
+- drift counts + status
+
 ## Fixtures
 
 - `fixtures/sample-incident-import.csv`

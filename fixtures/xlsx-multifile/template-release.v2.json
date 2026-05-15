@@ -1,0 +1,8 @@
+{
+  "template_id": "template_v2_sanitized",
+  "schema_version": "v2",
+  "workbook_file": "template.v2.sanitized.xlsx",
+  "owner": "template-governance",
+  "reviewer": "release-review",
+  "notes": "sanitized fixture for template drift gate"
+}

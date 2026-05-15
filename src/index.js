@@ -50,6 +50,15 @@ const {
   buildGoogleSheetsBatchUpdateRequest,
   exportContractToGoogleSheet
 } = require("./google-sheet-connector");
+const {
+  validateXlsxBinaryWorkbook,
+  REQUIRED_SHEETS: XLSX_BINARY_REQUIRED_SHEETS,
+  DEFAULT_SCHEMA_VERSION: XLSX_BINARY_DEFAULT_SCHEMA_VERSION
+} = require("./xlsx-binary-parser");
+const {
+  runTemplateDriftCheck,
+  DEFAULT_MANIFEST_PATH: TEMPLATE_DRIFT_DEFAULT_MANIFEST_PATH
+} = require("./template-drift-check");
 
 module.exports = {
   MASTER_DATA,
@@ -90,5 +99,10 @@ module.exports = {
   loadContractFromFile,
   loadSchemaProfile,
   buildGoogleSheetsBatchUpdateRequest,
-  exportContractToGoogleSheet
+  exportContractToGoogleSheet,
+  validateXlsxBinaryWorkbook,
+  XLSX_BINARY_REQUIRED_SHEETS,
+  XLSX_BINARY_DEFAULT_SCHEMA_VERSION,
+  runTemplateDriftCheck,
+  TEMPLATE_DRIFT_DEFAULT_MANIFEST_PATH
 };
