@@ -75,6 +75,20 @@ npm run smoke:google-sheet:staging
   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
   - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
 
+## M27 Verification Status
+
+- protected workflow parse issue was fixed by removing parse-time secret expression branching and using runtime shell guards
+- verified run (masked evidence):
+  - workflow run id: `25922859625`
+  - `Readiness Check`: success
+  - `Google Sheet Staging Smoke (Protected)`: success with skip-path when secrets are absent
+- if secrets are absent:
+  - smoke reports `status=skip`
+  - CI stays green for generic PR/push flows
+- to verify real staging write success path:
+  - configure both secrets in repository settings
+  - rerun workflow and confirm smoke output shows staging write completion (no skip)
+
 ## Notes
 
 - ตัว connector รองรับ service account JWT flow เพื่อขอ access token แล้วเรียก `spreadsheets.values.batchUpdate`

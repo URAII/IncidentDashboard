@@ -31,6 +31,7 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 - Milestone 15 (M24): AppSheet / Google Sheet export contract (sanitized-only tabs + CLI contract generator)
 - Milestone 16 (M25): Staging Google Sheet connector wrapper + AppSheet schema compatibility check (dry-run by default, staging explicit)
 - Milestone 17 (M26): Staging smoke command + protected CI execution with secret-aware skip behavior
+- Milestone 18 (M27): GitHub protected staging workflow verification (skip-path validated, parse-safe workflow update)
 
 ### Deferred
 
@@ -67,9 +68,9 @@ Master Data -> Incident Form -> Validation -> Workflow -> SLA -> Dashboard -> Re
 
 ## Recommended Next Path
 
-1. Add direct binary `.xlsx` parser gate (current `check:import:xlsx` is sheet-tab compatibility only)
-2. Add credential rotation and audit checklist for staging service account
-3. Add deployment policy for staged-to-production sheet promotion with approval checkpoint
+1. Configure real staging secrets in GitHub and verify one successful protected staging write run
+2. Add direct binary `.xlsx` parser gate (current `check:import:xlsx` is sheet-tab compatibility only)
+3. Add credential rotation and audit checklist for staging service account
 
 ## Non-goals for this prototype
 

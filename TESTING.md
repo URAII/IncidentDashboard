@@ -113,6 +113,23 @@ GitHub Actions workflow:
   - mask spreadsheet id
   - ไม่แสดง credential/service account/token/secret/raw URL/PII ใน log
 
+## GitHub Secrets Staging Verification (M27)
+
+- verified protected workflow run:
+  - workflow: `CI`
+  - run id: `25922859625`
+  - branch: `chore/final-codeowners-reviewer`
+  - jobs:
+    - `Readiness Check` => success
+    - `Google Sheet Staging Smoke (Protected)` => success (skip-path)
+- verified behavior when secrets are missing:
+  - smoke output: `status=skip`
+  - PR/general CI does not fail due to missing staging secrets
+- prerequisite for real staging write success path:
+  - set repo secrets:
+    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+    - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+
 ## Branch Protection Requirement
 
 Required status check before merge:

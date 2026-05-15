@@ -995,3 +995,76 @@ npm run check
 1. Provision staging secrets in GitHub Actions and run one protected workflow to validate real staging write success path.
 2. Add binary `.xlsx` parsing gate if required by upcoming ingestion roadmap.
 3. Add credential rotation/audit checklist for service account and staging spreadsheet access.
+
+## M27 GitHub Secrets Staging Write Verification (2026-05-15)
+
+### Done
+
+- Verified GitHub auth and repository context for workflow operations.
+- Checked current secret/env availability (sanitized):
+  - local env `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`: `UNSET`
+  - local env `GOOGLE_APPLICATION_CREDENTIALS_JSON`: `UNSET`
+  - repo secrets list returned empty.
+- Pushed updated workflow and triggered protected CI run on branch `chore/final-codeowners-reviewer`.
+- Resolved workflow parse/startup issue by making secret handling runtime-guarded (shell) instead of parse-time conditional expression.
+- Verified protected smoke skip behavior on GitHub Actions when secrets are absent.
+
+### Changed Files (M27)
+
+- `.github/workflows/ci.yml`
+- `ROADMAP.md`
+- `TESTING.md`
+- `docs/google-sheet-connector.md`
+- `HANDOFF.md`
+
+### Workflow Evidence (Masked)
+
+- failing run before workflow guard fix:
+  - run id: `25922704241`
+  - status: `failure`
+  - note: workflow file issue (no jobs created)
+- successful run after guard fix:
+  - run id: `25922859625`
+  - workflow: `CI`
+  - `Readiness Check`: success
+  - `Google Sheet Staging Smoke (Protected)`: success
+  - smoke log result: `status=skip` because required secrets/env were missing
+
+### Commands Run (Sanitized)
+
+```bash
+gh auth status
+gh secret list --repo URAII/IncidentDashboard
+git push origin chore/final-codeowners-reviewer
+gh run list --repo URAII/IncidentDashboard --workflow ci.yml --branch chore/final-codeowners-reviewer --limit 3
+gh run watch 25922859625 --repo URAII/IncidentDashboard --exit-status
+gh run view 25922859625 --repo URAII/IncidentDashboard --job 76196242087 --log
+npm run check:import:v2
+npm run check:import:xlsx
+npm test
+npm run check
+```
+
+### Verification Results
+
+- `npm run check:import:v2`: pass
+- `npm run check:import:xlsx`: pass
+- `npm test`: pass (`78/78`)
+- `npm run check`: pass
+- protected CI smoke on GitHub:
+  - skip path verified and non-failing when secrets are absent
+  - no credential/token/secret/PII leak in project logs/output
+
+### Risks / Remaining Limits
+
+1. Real staging write success path cannot be executed until repository secrets are populated with valid values.
+2. Current session cannot set secrets from env because required env values are not present.
+3. `check:import:xlsx` remains sheet-tab compatibility gate (not direct binary parser).
+
+### Next Recommended Task
+
+1. Set repository secrets in GitHub settings:
+   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+   - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+2. Re-run workflow `CI` and confirm protected smoke output shows staging write completion (not skip).
+3. Capture masked run evidence (`run id`, `job status`, `updated rows`) in HANDOFF for final staging-write sign-off.
