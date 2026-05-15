@@ -34,6 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - readiness-check
+    env:
+      GOOGLE_SHEETS_STAGING_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_STAGING_SPREADSHEET_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,17 +52,17 @@ jobs:
         run: npm ci
 
       - name: Prepare Google Credentials (Protected)
-        if: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON != '' }}
         shell: bash
         run: |
+          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+            echo "Protected credentials secret not present; smoke command will use skip path."
+            exit 0
+          fi
           mkdir -p "$RUNNER_TEMP/secure"
           CRED_FILE="$RUNNER_TEMP/secure/google-staging-service-account.json"
-          printf '%s' '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > "$CRED_FILE"
+          printf '%s' "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > "$CRED_FILE"
           chmod 600 "$CRED_FILE"
-          {
-            echo "GOOGLE_APPLICATION_CREDENTIALS=$CRED_FILE"
-            echo "GOOGLE_SHEETS_STAGING_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_STAGING_SPREADSHEET_ID }}"
-          } >> "$GITHUB_ENV"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$CRED_FILE" >> "$GITHUB_ENV"
 
       - name: Run Protected Google Sheet Staging Smoke
         run: npm run smoke:google-sheet:staging
