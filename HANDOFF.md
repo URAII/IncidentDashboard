@@ -1414,6 +1414,14 @@ npm run check:template-drift
 
 - local quality gates pass (`npm test`, `npm run check`)
 - workflow config confirms WIF/OIDC path is active
+- protected workflow verification (masked):
+  - run id: `25957664876`
+  - `Readiness Check` job id: `76307243089` (`success`)
+  - `Google Sheet Staging Smoke (Protected)` job id: `76307258369` (`success`)
+  - `Check Protected Staging Config`: reports `status=skip`
+  - masked reason: missing `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`
+  - `google-github-actions/auth@v3` step: `skipped` (condition guard)
+  - smoke write step: `skipped` (condition guard)
 - write-success verification is pending until WIF secrets are present in repository settings
 
 ### Risks (Current)
