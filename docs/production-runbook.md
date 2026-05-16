@@ -34,9 +34,14 @@ AppSheet / Google Sheet / XLSX / CSV
 
 ## GitHub Operations (M30)
 
-1. Repository secrets required for protected staging write:
+1. Repository secrets required for protected staging write (WIF):
    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
-   - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+   - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+   - `GCP_SERVICE_ACCOUNT_EMAIL`
+2. Protected smoke auth model:
+   - `google-github-actions/auth@v3`
+   - `permissions`: `contents: read`, `id-token: write`
+   - keyless auth via Workload Identity Federation
 2. Branch protection on `main` must require:
    - status check `Readiness Check`
 3. CI readiness job must verify `unzip` availability before gates run
@@ -115,9 +120,13 @@ brew install unzip
 
 1. ตั้ง secrets:
    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
-   - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+   - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+   - `GCP_SERVICE_ACCOUNT_EMAIL`
 2. รัน workflow protected smoke ซ้ำ
 3. ยืนยัน log summary เป็น `status=pass` สำหรับ write-path (ไม่ใช่ `status=skip`)
+
+หมายเหตุ policy:
+- org policy `iam.disableServiceAccountKeyCreation` ทำให้ key JSON ไม่ใช่วิธีหลักใน protected CI
 
 ### 5) UI server bind skip in sandbox
 

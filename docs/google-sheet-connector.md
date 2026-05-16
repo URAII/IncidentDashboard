@@ -15,11 +15,18 @@
 - mode เริ่มต้น: `dry-run`
 - จะไม่เขียน Google Sheet จริงจนกว่าจะใส่ `--staging`
 - ห้าม hardcode credential/token/spreadsheet secret ในโค้ด
+- ใช้ keyless auth สำหรับ CI protected smoke (WIF/OIDC) เป็นวิธีหลัก
 
 ## Required Env (staging only)
 
 - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
 - `GOOGLE_APPLICATION_CREDENTIALS`
+
+## Protected CI Auth Model (M30 WIF Switch)
+
+- org policy: `iam.disableServiceAccountKeyCreation`
+- ดังนั้น protected workflow ไม่พึ่ง `GOOGLE_APPLICATION_CREDENTIALS_JSON` เป็นวิธีหลัก
+- ใช้ `google-github-actions/auth@v3` + Workload Identity Federation เพื่อสร้าง credential file ชั่วคราวและ export `GOOGLE_APPLICATION_CREDENTIALS` ให้ runtime
 
 ## CLI
 
@@ -68,12 +75,14 @@ npm run smoke:google-sheet:staging
 - workflow: `.github/workflows/ci.yml`
 - job: `Google Sheet Staging Smoke (Protected)`
 - behavior:
-  - ถ้า `GOOGLE_APPLICATION_CREDENTIALS_JSON` secret พร้อม จะสร้าง credential file ชั่วคราวและรัน staging smoke
-  - ถ้า secret ไม่พร้อม จะ skip โดยไม่ทำให้ PR ทั่วไป fail
+  - workflow ตรวจ WIF config ก่อน (`GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`)
+  - ถ้า WIF config ไม่ครบ จะ skip พร้อม diagnostic `status=skip` โดยไม่ทำให้ PR ทั่วไป fail
+  - ถ้า WIF config ครบ จะ auth ผ่าน OIDC และ export `GOOGLE_APPLICATION_CREDENTIALS` ให้ smoke runtime
   - ใช้ `npm run smoke:google-sheet:staging` เป็น single entrypoint
 - required secret names:
   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
-  - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+  - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  - `GCP_SERVICE_ACCOUNT_EMAIL`
 
 ## M27 Verification Status
 
@@ -91,9 +100,10 @@ npm run smoke:google-sheet:staging
 
 ## M30 Operational Closure Notes
 
-- required secrets for write-path:
+- required secrets for write-path (WIF):
   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
-  - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+  - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  - `GCP_SERVICE_ACCOUNT_EMAIL`
 - if secrets are missing:
   - protected smoke must skip clearly without failing generic PR flows
 - if secrets are present:
@@ -104,5 +114,6 @@ npm run smoke:google-sheet:staging
 ## Notes
 
 - ตัว connector รองรับ service account JWT flow เพื่อขอ access token แล้วเรียก `spreadsheets.values.batchUpdate`
+- protected CI แนะนำ WIF/OIDC แทน service account key JSON ตาม policy องค์กร
 - แนะนำใช้ staging spreadsheet เฉพาะสำหรับทดสอบ contract
 - หมายเหตุ: `check:import:xlsx` ปัจจุบันเป็น sheet-tab compatibility gate ไม่ใช่ binary `.xlsx` parser โดยตรง

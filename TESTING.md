@@ -112,11 +112,12 @@ GitHub Actions workflow:
   - env ครบ => attempt staging write จริง
 - protected CI behavior:
   - workflow job `Google Sheet Staging Smoke (Protected)` รันหลัง `Readiness Check`
-  - ถ้า secret ไม่มี จะ skip โดยไม่ fail PR ทั่วไป
-  - ถ้า secret พร้อม จะรัน staging smoke ด้วย credential file ชั่วคราว
+  - ใช้ Workload Identity Federation (WIF) ผ่าน `google-github-actions/auth@v3`
+  - ถ้า WIF secret/env ไม่ครบ จะ skip โดยไม่ fail PR ทั่วไป
+  - ถ้า WIF พร้อม จะ auth แบบ keyless และ export `GOOGLE_APPLICATION_CREDENTIALS` ให้ smoke runtime ใช้งาน
 - leak prevention:
   - mask spreadsheet id
-  - ไม่แสดง credential/service account/token/secret/raw URL/PII ใน log
+  - ไม่แสดง provider/service account/token/secret/credential path/raw URL/PII ใน log
 
 ## GitHub Secrets Staging Verification (M27)
 
@@ -131,10 +132,25 @@ GitHub Actions workflow:
   - smoke output: `status=skip`
   - PR/general CI does not fail due to missing staging secrets
 - prerequisite for real staging write success path:
-  - set repo secrets:
+  - set repo secrets (WIF):
+    - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+    - `GCP_SERVICE_ACCOUNT_EMAIL`
     - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
-    - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
   - rerun protected workflow and confirm smoke output is staging-write complete (not `status=skip`)
+
+## WIF Workflow Guard Tests (M30)
+
+- module test:
+  - `tests/test_ci_workflow_wif.test.js`
+- coverage:
+  - workflow มี `permissions` ครบ (`contents: read`, `id-token: write`)
+  - protected smoke ใช้ `google-github-actions/auth@v3`
+  - ใช้ secret-based WIF config:
+    - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+    - `GCP_SERVICE_ACCOUNT_EMAIL`
+    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - ไม่พึ่ง `GOOGLE_APPLICATION_CREDENTIALS_JSON` ใน workflow protected smoke
+  - missing WIF env มี diagnostic `status=skip` แบบ masked
 
 ## Binary XLSX Parser Gate (M28)
 
@@ -176,8 +192,8 @@ GitHub Actions workflow:
   - pull request review required
   - code owner review required
 - protected staging smoke success-path prerequisites:
-  - GitHub secrets present (`GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`, `GOOGLE_APPLICATION_CREDENTIALS_JSON`)
-  - current environment status: both secrets `UNSET`, so write-success path remains pending
+  - GitHub WIF secrets present (`GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`)
+  - org policy note: `iam.disableServiceAccountKeyCreation` => ไม่ใช้ service account key JSON เป็นวิธีหลัก
 - schema support timeline:
   - v1 end-of-support: `2026-09-30`
   - post-EOL removal plan: [docs/schema-migration.md](/Users/mmdx/Incident%20Dashboard/IncidentDashboard/docs/schema-migration.md)

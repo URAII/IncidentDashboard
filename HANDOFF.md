@@ -1231,11 +1231,26 @@ npm run check:template-drift
 - local secret env status:
   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID=UNSET`
   - `GOOGLE_APPLICATION_CREDENTIALS_JSON=UNSET`
-- repository secret list: no configured entries returned
+- repository secret names found:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
 - branch protection (`main`) includes:
   - required status check: `Readiness Check`
   - require pull request review: enabled
   - require code owner review: enabled
+- protected smoke rerun evidence (masked):
+  - run id: `25922970895` (attempt `3`)
+  - run url: `https://github.com/URAII/IncidentDashboard/actions/runs/25922970895`
+  - workflow timestamp: `2026-05-15T15:22:21Z`
+  - `Readiness Check`: success
+    - job id: `76206963814`
+  - job name: `Google Sheet Staging Smoke (Protected)`
+  - job id: `76207004911`
+  - workflow status: `completed/success`
+  - smoke result: `status=skip` (not write-success)
+  - masked spreadsheet id: `UNAVAILABLE_IN_LOG`
+  - masked service account: `UNAVAILABLE_IN_LOG`
+  - credential/token/secret/PII/raw sensitive URL leak: `not found` in reported project logs/evidence
 
 ### Changed Files (M30)
 
@@ -1257,6 +1272,10 @@ gh api repos/URAII/IncidentDashboard/branches/main/protection
 if [ -n \"$GOOGLE_SHEETS_STAGING_SPREADSHEET_ID\" ] && [ -n \"$GOOGLE_APPLICATION_CREDENTIALS_JSON\" ]; then gh secret set ...; else echo SECRETS_SET=NO_MISSING_ENV; fi
 PROTECTION_JSON=\"$(gh api repos/URAII/IncidentDashboard/branches/main/protection)\" && ...
 gh run list --repo URAII/IncidentDashboard --limit 3
+gh run rerun 25922970895 --repo URAII/IncidentDashboard
+gh run watch 25922970895 --repo URAII/IncidentDashboard --exit-status
+gh run view 25922970895 --repo URAII/IncidentDashboard --job 76207004911 --log
+gh api repos/URAII/IncidentDashboard/actions/runs/25922970895 --jq '{status:.status,conclusion:.conclusion,run_attempt:.run_attempt,updated_at:.updated_at,html_url:.html_url}'
 npm test
 npm run check
 npm run check:import:v2
@@ -1276,8 +1295,8 @@ npm run check:template-drift
 
 ### Deferred / Not Completed in This Environment
 
-1. Setting repository secrets could not be completed because required secret values are not present in local env/session.
-2. Protected staging smoke write success-path cannot be verified until both secrets are configured with valid values.
+1. Protected staging smoke still returns `status=skip` even after rerun because secret values are still not injected into runtime.
+2. Write-success path cannot be verified until both secret values are re-set with valid non-empty content.
 
 ### v1 End-of-Support and Removal Plan
 
@@ -1287,7 +1306,7 @@ npm run check:template-drift
 
 ### Risks
 
-1. Staging write success-path remains unverified until secrets are populated.
+1. Staging write success-path remains unverified until secrets are validated as non-empty and runtime-injected.
 2. Binary/template gates rely on `unzip` availability in CI runtime.
 3. v1 compatibility path must be removed on schedule to avoid long-tail maintenance risk.
 
@@ -1295,10 +1314,119 @@ npm run check:template-drift
 
 - Required readiness and import gates are passing locally.
 - Branch protection requirement for `Readiness Check` is enforced on `main`.
-- Operational closure is partially complete; staging secrets provisioning + write success verification remain pending.
+- Operational closure is partially complete; protected staging smoke write-success remains pending.
 
 ### Next Operational Tasks
 
-1. Configure `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` in GitHub Actions secrets.
-2. Trigger CI and confirm `Google Sheet Staging Smoke (Protected)` reports write-path success (not skip).
-3. Capture masked CI evidence and close deferred item in this handoff.
+1. Re-set `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` with valid non-empty values in GitHub Actions secrets.
+2. Re-run CI and confirm `Google Sheet Staging Smoke (Protected)` log reports write-path success (not `status=skip`).
+3. Capture masked spreadsheet/service-account evidence and close deferred item in this handoff.
+
+## M30 Retry - Protected Staging Smoke (2026-05-15, Attempt 4)
+
+### Retry Scope
+
+- Re-checked GitHub auth and remote repository access
+- Re-ran protected workflow `CI` for run id `25922970895`
+- Verified protected smoke job log for write-path vs skip-path outcome
+
+### Masked Evidence
+
+- workflow run id: `25922970895`
+- run attempt: `4`
+- workflow status: `completed/success`
+- workflow updated_at: `2026-05-15T15:28:10Z`
+- workflow url: `https://github.com/URAII/IncidentDashboard/actions/runs/25922970895`
+- job name: `Google Sheet Staging Smoke (Protected)`
+- job id: `76207954303`
+- log result: `Google Sheet staging smoke skipped ... status=skip`
+- protected credential step result: `Protected credentials secret not present; smoke command will use skip path.`
+- secret env at job runtime:
+  - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID: ""`
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON: ""`
+- masked spreadsheet id: `UNAVAILABLE_IN_LOG`
+- masked service account: `UNAVAILABLE_IN_LOG`
+- credential/token/secret/PII/raw sensitive URL leak in reported evidence: `not found`
+
+### Status After Retry
+
+- `Google Sheet Staging Smoke (Protected)` is still `skip` and is **not** `write-success`.
+- M30 end-to-end staging write verification remains **open**.
+
+### Remaining Unblock Requirement
+
+1. Re-save both GitHub Actions secrets with valid non-empty values:
+   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+   - `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+2. Confirm test spreadsheet has editor permission for the service account from credential JSON.
+3. Rerun protected workflow and verify smoke output is `write-success` (not `status=skip`).
+
+## M30 Verification Update (2026-05-16)
+
+### Run/Job Verification
+
+- run id: `25922970895`
+- Readiness job id: `76303718088` (`success`)
+- Google Sheet Staging Smoke job id: `76303730564` (`success`)
+- inspected step: `Run Protected Google Sheet Staging Smoke`
+- smoke output: `status=skip`
+- write-path status: **blocked** (ยังไม่เข้า `write-success`)
+
+### M30 Closure Status
+
+- M30 ยัง **ไม่ปิด end-to-end** เพราะ protected smoke ยังเป็น skip-path
+- สาเหตุจาก log: required env for staging write ยังไม่ถูก inject ใน runtime ของ job
+
+### Evidence Safety
+
+- no secret/token/PII/raw sensitive URL leaked in this recorded evidence
+
+### Risks (Unchanged)
+
+1. binary/template gates ยังพึ่ง `unzip` ใน environment
+2. v1 EOL date: `2026-09-30`
+3. v1 removal window start: `2026-10-01`
+
+## M30 WIF Switch (2026-05-16)
+
+### Why Changed
+
+- org policy blocks service account key creation: `iam.disableServiceAccountKeyCreation`
+- ดังนั้น protected staging smoke ต้องเปลี่ยนจาก key JSON ไปเป็น keyless Workload Identity Federation (WIF)
+
+### What Changed
+
+- switched protected smoke auth in `.github/workflows/ci.yml` to:
+  - `google-github-actions/auth@v3`
+  - `permissions`:
+    - `contents: read`
+    - `id-token: write`
+  - WIF secrets:
+    - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+    - `GCP_SERVICE_ACCOUNT_EMAIL`
+    - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+- removed dependency on `GOOGLE_APPLICATION_CREDENTIALS_JSON` as the primary protected-CI auth path
+- kept protected behavior:
+  - if WIF secrets missing => masked diagnostic + `status=skip`
+  - if WIF secrets valid => auth path exports `GOOGLE_APPLICATION_CREDENTIALS` and smoke enters write path
+
+### Verification Status
+
+- local quality gates pass (`npm test`, `npm run check`)
+- workflow config confirms WIF/OIDC path is active
+- write-success verification is pending until WIF secrets are present in repository settings
+
+### Risks (Current)
+
+1. binary/template gates still depend on `unzip` in runtime environment
+2. v1 EOL date remains `2026-09-30`
+3. v1 removal window starts `2026-10-01`
+
+### Next Operational Task
+
+1. set WIF secrets in repo settings:
+   - `GCP_WORKLOAD_IDENTITY_PROVIDER`
+   - `GCP_SERVICE_ACCOUNT_EMAIL`
+   - `GOOGLE_SHEETS_STAGING_SPREADSHEET_ID`
+2. rerun protected smoke and confirm `status=write-success` (not `status=skip`)
+3. record masked run evidence in this handoff once write path is confirmed
